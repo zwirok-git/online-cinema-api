@@ -40,10 +40,8 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Install dependencies
-        run: |
-          pip install uv
-          uv sync --all-extras
+      - name: Install mypy
+        run: pip install mypy
 
       - name: Run mypy
-        run: uv run mypy src
+        run: mypy src/
