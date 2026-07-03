@@ -5,7 +5,7 @@ from enum import Enum
 from sqlalchemy import DECIMAL, DateTime, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.core.database import Base
+from core.database import Base
 
 
 class OrderStatus(str, Enum):
@@ -62,3 +62,4 @@ class OrderItem(Base):
     )
 
     order: Mapped["Order"] = relationship("Order", back_populates="items")
+    movie: Mapped["Movie"] = relationship("MovieModel", lazy="selectin")
