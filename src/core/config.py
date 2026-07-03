@@ -9,17 +9,17 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    DB_USER: str = os.getenv("DB_USER", "test_user")
-    DB_PASSWORD: str = os.getenv("DB_PASSWORD", "test_password")
-    DB_HOST: str = os.getenv("DB_HOST", "test_host")
-    DB_PORT: int = int(os.getenv("DB_PORT", 5432))
-    DB_NAME: str = os.getenv("DB_NAME", "test_db")
+    POSTGRES_DB: str = os.getenv("DB_USER", "test_user")
+    POSTGRES_PASSWORD: str = os.getenv("DB_PASSWORD", "test_password")
+    POSTGRES_USER: str = os.getenv("DB_HOST", "test_host")
+    POSTGRES_DB_PORT: int = int(os.getenv("DB_PORT", 5432))
+    POSTGRES_HOST: str = os.getenv("DB_NAME", "test_db")
 
     @property
     def database_url(self) -> str:
         return (
-            f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASSWORD}"
-            f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+            f"postgresql+asyncpg://{self.POSTGRES_DB}:{self.POSTGRES_PASSWORD}"
+            f"@{self.POSTGRES_USER}:{self.POSTGRES_DB_PORT}/{self.POSTGRES_HOST}"
         )
 
 
