@@ -1,7 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Optional
 
 from sqlalchemy import DECIMAL, DateTime, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -47,7 +46,7 @@ class Payment(Base):
         onupdate=func.now(),
         nullable=False,
     )
-    external_payment_id: Mapped[Optional[str]] = mapped_column(
+    external_payment_id: Mapped[str | None] = mapped_column(
         String(255), unique=True, index=True, nullable=True
     )
     items: Mapped[list["PaymentItem"]] = relationship(
