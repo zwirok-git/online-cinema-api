@@ -1,7 +1,6 @@
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Optional
 
 from sqlalchemy import DECIMAL, DateTime, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
@@ -28,7 +27,7 @@ class Order(Base):
     status: Mapped[OrderStatus] = mapped_column(
         String(20), default=OrderStatus.PENDING, nullable=False
     )
-    total_amount: Mapped[Optional[Decimal]] = mapped_column(
+    total_amount: Mapped[Decimal | None] = mapped_column(
         DECIMAL(10, 2), nullable=True
     )
     created_at: Mapped[datetime] = mapped_column(
