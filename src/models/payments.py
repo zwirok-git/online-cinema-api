@@ -6,7 +6,7 @@ from typing import Optional
 from sqlalchemy import DECIMAL, DateTime, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.core.database import Base
+from core.database import Base
 
 
 class PaymentStatus(str, Enum):
@@ -32,9 +32,7 @@ class Payment(Base):
         nullable=False,
         unique=True,
     )
-    amount: Mapped[Decimal] = mapped_column(
-        DECIMAL(10, 2), nullable=False
-    )
+    amount: Mapped[Decimal] = mapped_column(DECIMAL(10, 2), nullable=False)
     status: Mapped[PaymentStatus] = mapped_column(
         String(20), default=PaymentStatus.PENDING, nullable=False
     )
