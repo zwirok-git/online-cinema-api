@@ -31,9 +31,7 @@ class Payment(Base):
         nullable=False,
         unique=True,
     )
-    amount: Mapped[Decimal] = mapped_column(
-        DECIMAL(10, 2), nullable=False
-    )
+    amount: Mapped[Decimal] = mapped_column(DECIMAL(10, 2), nullable=False)
     status: Mapped[PaymentStatus] = mapped_column(
         String(20), default=PaymentStatus.PENDING, nullable=False
     )

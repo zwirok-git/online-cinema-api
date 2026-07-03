@@ -45,8 +45,7 @@ class PaymentItemRepository:
         self.session = session
 
     async def create_payment_items(
-            self,
-            items_data: list[dict]
+        self, items_data: list[dict]
     ) -> list[PaymentItem]:
         items = [PaymentItem(**data) for data in items_data]
         self.session.add_all(items)
