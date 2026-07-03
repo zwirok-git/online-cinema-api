@@ -3,6 +3,6 @@ repos:
   rev: v0.15.17
   hooks:
     - id: ruff-check
-      args: [ --fix ]
+      args: [ --fix, "--extend-select=TYPE" ]
 
     - id: ruff-format
