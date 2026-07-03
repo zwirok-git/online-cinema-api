@@ -4,7 +4,7 @@ from typing import Optional
 
 from pydantic import BaseModel, ConfigDict, Field
 
-from src.models import PaymentStatus
+from models import PaymentStatus
 
 
 class PaymentItemBaseSchema(BaseModel):
