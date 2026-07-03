@@ -62,3 +62,4 @@ class OrderItem(Base):
     )
 
     order: Mapped["Order"] = relationship("Order", back_populates="items")
+    movie: Mapped["Movie"] = relationship("MovieModel", lazy="selectin")
