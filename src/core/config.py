@@ -22,5 +22,8 @@ class Settings(BaseSettings):
             f"@{self.POSTGRES_USER}:{self.POSTGRES_DB_PORT}/{self.POSTGRES_HOST}"
         )
 
+    STRIPE_SECRET_KEY: str
+    STRIPE_WEBHOOK_SECRET: str | None = None
+
 
 settings = Settings()
