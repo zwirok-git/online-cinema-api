@@ -54,8 +54,6 @@ select = [
     "I"
 ]
 
-#ignore = ["F401",]
-
 
 [tool.ruff.lint.mccabe]
 max-complexity = 18
@@ -65,5 +63,6 @@ max-complexity = 18
 lines-after-imports = 2
 
 
-#[tool.ruff.lint.per-file-ignores]
-#"core/settings.py" = ["E501"]
+[tool.mypy]
+python-version = "3.13"
+warn_return_any = true
