@@ -1,3 +1,5 @@
+import os
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -7,11 +9,11 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    DB_USER: str
-    DB_PASSWORD: str
-    DB_HOST: str
-    DB_PORT: int
-    DB_NAME: str
+    DB_USER: str = os.getenv("DB_USER", "test_user")
+    DB_PASSWORD: str = os.getenv("DB_PASSWORD", "test_password")
+    DB_HOST: str = os.getenv("DB_HOST", "test_host")
+    DB_PORT: int = int(os.getenv("DB_PORT", 5432))
+    DB_NAME: str = os.getenv("DB_NAME", "test_db")
 
     @property
     def database_url(self) -> str:
