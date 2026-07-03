@@ -64,5 +64,5 @@ lines-after-imports = 2
 
 
 [tool.mypy]
-python-version = "3.13"
+python_version = "3.13"
 warn_return_any = true
