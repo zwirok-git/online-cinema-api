@@ -46,4 +46,4 @@ jobs:
           uv sync --all-extras
 
       - name: Run mypy
-        run: uv run mypy src
+        run: uv run mypy
