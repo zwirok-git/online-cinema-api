@@ -1,6 +1,6 @@
 import enum
 from datetime import date, datetime
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from sqlalchemy import (
     Boolean,
@@ -99,7 +99,7 @@ class UserModel(Base):
         cascade="all, delete-orphan",
     )
 
-    profile: Mapped[Optional["UserProfileModel"]] = relationship(
+    profile: Mapped["UserProfileModel" | None] = relationship(
         "UserProfileModel", back_populates="user", cascade="all, delete-orphan"
     )
 
@@ -109,18 +109,14 @@ class UserProfileModel(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
 
-    first_name: Mapped[Optional[str]] = mapped_column(
-        String(255), nullable=True
-    )
-    last_name: Mapped[Optional[str]] = mapped_column(
-        String(255), nullable=True
-    )
-    avatar: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
-    gender: Mapped[Optional[GenderEnum]] = mapped_column(
+    first_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    last_name: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    avatar: Mapped[str | None] = mapped_column(String(255), nullable=True)
+    gender: Mapped[GenderEnum | None] = mapped_column(
         Enum(GenderEnum), nullable=True
     )
-    date_of_birth: Mapped[Optional[date]] = mapped_column(Date, nullable=True)
-    info: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    date_of_birth: Mapped[date | None] = mapped_column(Date, nullable=True)
+    info: Mapped[str | None] = mapped_column(Text, nullable=True)
 
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"),
