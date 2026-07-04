@@ -32,9 +32,3 @@ build/
 .mypy_cache
 .ruff_cache
 docs
-
-.github
-.vscode
-.mypy_cache
-.ruff_cache
-docs
