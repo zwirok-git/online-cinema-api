@@ -24,7 +24,6 @@ if TYPE_CHECKING:
         PasswordResetTokenModel,
         RefreshTokenModel,
     )
-    from src.models.carts import Cart
 
 
 class UserGroupEnum(enum.Enum):
@@ -102,10 +101,6 @@ class UserModel(Base):
 
     profile: Mapped["UserProfileModel" | None] = relationship(
         "UserProfileModel", back_populates="user", cascade="all, delete-orphan"
-    )
-
-    cart: Mapped["Cart" | None] = relationship(
-        "Cart", back_populates="user", cascade="all, delete-orphan"
     )
 
 
