@@ -30,5 +30,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE: timedelta = timedelta(days=1)
     REFRESH_TOKEN_EXPIRE: timedelta = timedelta(days=30)
 
+    API_V1_PREFIX: str = "/api/v1"
+
 
 settings = Settings()
