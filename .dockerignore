@@ -1,6 +1,5 @@
 .git
 .idea
-alembic/migrations/
 __pycache__/
 *.pyc
 *.pyo
