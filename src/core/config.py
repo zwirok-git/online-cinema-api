@@ -1,5 +1,3 @@
-import os
-
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -9,18 +7,21 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    DB_USER: str = os.getenv("DB_USER", "test_user")
-    DB_PASSWORD: str = os.getenv("DB_PASSWORD", "test_password")
-    DB_HOST: str = os.getenv("DB_HOST", "test_host")
-    DB_PORT: int = int(os.getenv("DB_PORT", 5432))
-    DB_NAME: str = os.getenv("DB_NAME", "test_db")
+    POSTGRES_DB: str = "movies_db"
+    POSTGRES_PASSWORD: str = "some_password"
+    POSTGRES_USER: str = "postgres"
+    POSTGRES_DB_PORT: int = 5432
+    POSTGRES_HOST: str = "localhost"
 
     @property
     def database_url(self) -> str:
         return (
-            f"postgresql+asyncpg://{self.DB_USER}:{self.DB_PASSWORD}"
-            f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+            f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
+            f"@{self.POSTGRES_HOST}:{self.POSTGRES_DB_PORT}/{self.POSTGRES_DB}"
         )
+
+    STRIPE_SECRET_KEY: str = "sk_test_placeholder"
+    STRIPE_WEBHOOK_SECRET: str | None = None
 
 
 settings = Settings()
