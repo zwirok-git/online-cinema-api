@@ -19,14 +19,12 @@ services:
     container_name: online_cinema_api
     env_file:
       - .env
-    command: uv run uvicorn main:app --host 0.0.0.0 --port 8000
+    command: sh -c "uv run alembic upgrade head && uv run uvicorn main:app --host 0.0.0.0 --port 8000 --reload"
     ports:
       - "8000:8000"
     depends_on:
       db:
         condition: service_healthy
-      redis:
-        condition: service_started
     volumes:
       - ./src:/app/src
 

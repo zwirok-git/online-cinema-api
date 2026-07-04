@@ -1,11 +1,16 @@
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DECIMAL, DateTime, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.database import Base
+
+
+if TYPE_CHECKING:
+    from models.movies import Movie
 
 
 class OrderStatus(str, Enum):
@@ -62,3 +67,4 @@ class OrderItem(Base):
     )
 
     order: Mapped["Order"] = relationship("Order", back_populates="items")
+    movie: Mapped["Movie"] = relationship("Movie", lazy="selectin")
