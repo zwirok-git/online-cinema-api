@@ -1,12 +1,11 @@
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
-from typing import Optional
 
 from sqlalchemy import DECIMAL, DateTime, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.core.database import Base
+from core.database import Base
 
 
 class PaymentStatus(str, Enum):
@@ -32,9 +31,7 @@ class Payment(Base):
         nullable=False,
         unique=True,
     )
-    amount: Mapped[Decimal] = mapped_column(
-        DECIMAL(10, 2), nullable=False
-    )
+    amount: Mapped[Decimal] = mapped_column(DECIMAL(10, 2), nullable=False)
     status: Mapped[PaymentStatus] = mapped_column(
         String(20), default=PaymentStatus.PENDING, nullable=False
     )
@@ -47,7 +44,7 @@ class Payment(Base):
         onupdate=func.now(),
         nullable=False,
     )
-    external_payment_id: Mapped[Optional[str]] = mapped_column(
+    external_payment_id: Mapped[str | None] = mapped_column(
         String(255), unique=True, index=True, nullable=True
     )
     items: Mapped[list["PaymentItem"]] = relationship(
