@@ -8,10 +8,10 @@ from exceptions.auth import TokenExpired, TokenInvalid
 
 class JWTService:
     def __init__(self) -> None:
-        self._secret = settings.SECRET_KEY
-        self._algorithm = settings.ALGORITHM
-        self._access_token_expire = settings.ACCESS_TOKEN_EXPIRE_MINUTES
-        self._refresh_token_expire = settings.REFRESH_TOKEN_EXPIRE_MINUTES
+        self._secret = settings.TOKEN_SECRET_KEY
+        self._algorithm = settings.TOKEN_ALGORITHM
+        self._access_token_expire = settings.ACCESS_TOKEN_EXPIRE
+        self._refresh_token_expire = settings.REFRESH_TOKEN_EXPIRE
 
     def create_access_token(
         self,
@@ -53,5 +53,5 @@ class JWTService:
             return data
         except jwt.ExpiredSignatureError:
             raise TokenExpired("This token has expired.") from None
-        except jwt.JWTError:
+        except jwt.PyJWTError:
             raise TokenInvalid("This token is invalid.") from None

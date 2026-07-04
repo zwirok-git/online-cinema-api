@@ -25,7 +25,7 @@ class Settings(BaseSettings):
     STRIPE_SECRET_KEY: str = "sk_test_placeholder"
     STRIPE_WEBHOOK_SECRET: str | None = None
 
-    TOKEN_SECRET_KEY: str | None = None
+    TOKEN_SECRET_KEY: str = "UuNi2QtnGzRdGIJmsRURVuQFthrwsr1EZu8fOomLQTZ"
     TOKEN_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE: timedelta = timedelta(days=1)
     REFRESH_TOKEN_EXPIRE: timedelta = timedelta(days=30)

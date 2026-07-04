@@ -35,10 +35,10 @@ async def register(
     token_service = TokenService(TokenRepository(db))
 
     try:
-        user = await user_service.create_user(
+        user_model = await user_service.create_user(
             email=user.email, raw_password=user.password
         )
-        await token_service.create_activation_token(user_id=user.id)
+        await token_service.create_activation_token(user_id=user_model.id)
         await db.commit()
     except (UserExceptions, TokenExceptions) as error:
         await db.rollback()
@@ -55,10 +55,10 @@ async def register(
     else:
         # here send email
         return UserRegisterResponseSchema(
-            id=user.id,
-            email=user.email,
-            created_at=user.created_at,
-            is_active=user.is_active,
+            id=user_model.id,
+            email=user_model.email,
+            created_at=user_model.created_at,
+            is_active=user_model.is_active,
         )
 
 
@@ -79,15 +79,13 @@ async def login(
     user_service = UserService(UserRepository(db), GroupRepository(db))
     jwt_service = JWTService()
     try:
-        user = await user_service.get_user_by_email(email=user.email)
-        await user_service.validate_credentials(
-            user.email, user.hashed_password
-        )
+        user_model = await user_service.get_user_by_email(email=user.email)
+        await user_service.validate_credentials(user.email, user.password)
         jwt_refresh_token = jwt_service.create_refresh_token(
-            data={"user_id": user.id}
+            data={"user_id": user_model.id}
         )
-        refresh_token = RefreshTokenModel.create(
-            user_id=user.id,
+        refresh_token = RefreshTokenModel(
+            user_id=user_model.id,
             expires_at=datetime.now(timezone.utc)
             + settings.REFRESH_TOKEN_EXPIRE,
             token=jwt_refresh_token,
@@ -108,7 +106,9 @@ async def login(
             detail="An error occurred while processing the request.",
         ) from None
 
-    jwt_access_token = jwt_service.create_access_token({"user_id": user.id})
+    jwt_access_token = jwt_service.create_access_token(
+        {"user_id": user_model.id}
+    )
     return TokenPairResponseSchema(
         access_token=jwt_access_token,
         refresh=jwt_refresh_token,
