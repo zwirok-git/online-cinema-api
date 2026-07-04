@@ -171,6 +171,19 @@ wheels = [
 ]
 
 [[package]]
+name = "celery-stubs"
+version = "0.1.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "mypy" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/98/14/b853ada8706a3a301396566b6dd405d1cbb24bff756236a12a01dbe766a4/celery-stubs-0.1.3.tar.gz", hash = "sha256:0fb5345820f8a2bd14e6ffcbef2d10181e12e40f8369f551d7acc99d8d514919", size = 46583, upload-time = "2023-02-10T02:20:11.837Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/1c/7a/4ab2347d13f1f59d10a7337feb9beb002664119f286036785284c6bec150/celery_stubs-0.1.3-py3-none-any.whl", hash = "sha256:dfb9ad27614a8af028b2055bb4a4ae99ca5e9a8d871428a506646d62153218d7", size = 89085, upload-time = "2023-02-10T02:20:09.409Z" },
+]
+
+[[package]]
 name = "cffi"
 version = "2.0.0"
 source = { registry = "https://pypi.org/simple" }
@@ -498,6 +511,7 @@ dependencies = [
     { name = "alembic" },
     { name = "asyncpg" },
     { name = "celery" },
+    { name = "celery-stubs" },
     { name = "fastapi" },
     { name = "mypy" },
     { name = "pwdlib", extra = ["argon2"] },
@@ -522,6 +536,7 @@ requires-dist = [
     { name = "alembic", specifier = ">=1.18.5,<2.0.0" },
     { name = "asyncpg", specifier = ">=0.31.0,<0.32.0" },
     { name = "celery", specifier = ">=5.6.3" },
+    { name = "celery-stubs", specifier = ">=0.1.3" },
     { name = "fastapi", specifier = ">=0.139.0,<0.140.0" },
     { name = "mypy", specifier = ">=2.1.0" },
     { name = "pwdlib", extras = ["argon2"], specifier = ">=0.3.0" },
