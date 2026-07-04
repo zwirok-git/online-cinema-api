@@ -16,8 +16,8 @@ class Settings(BaseSettings):
     @property
     def database_url(self) -> str:
         return (
-            f"postgresql+asyncpg://{self.POSTGRES_DB}:{self.POSTGRES_PASSWORD}"
-            f"@{self.POSTGRES_USER}:{self.POSTGRES_DB_PORT}/{self.POSTGRES_HOST}"
+            f"postgresql+asyncpg://{self.POSTGRES_USER}:{self.POSTGRES_PASSWORD}"
+            f"@{self.POSTGRES_HOST}:{self.POSTGRES_DB_PORT}/{self.POSTGRES_DB}"
         )
 
     STRIPE_SECRET_KEY: str = "sk_test_placeholder"
