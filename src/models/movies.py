@@ -6,8 +6,8 @@ from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import (
-    CheckConstraint,
     DECIMAL,
+    CheckConstraint,
     ForeignKey,
     String,
     Text,
@@ -15,7 +15,7 @@ from sqlalchemy import (
     func,
 )
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from src.core.database import Base
 
@@ -59,7 +59,9 @@ class Certification(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
 
-    movies: Mapped[list["Movie"]] = relationship(back_populates="certification")
+    movies: Mapped[list["Movie"]] = relationship(
+        back_populates="certification"
+    )
 
 
 class MovieGenre(Base):
@@ -98,7 +100,9 @@ class MovieDirector(Base):
 class Movie(Base):
     __tablename__ = "movies"
     __table_args__ = (
-        UniqueConstraint("name", "year", "time", name="uq_movie_name_year_time"),
+        UniqueConstraint(
+            "name", "year", "time", name="uq_movie_name_year_time"
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -113,33 +117,37 @@ class Movie(Base):
     meta_score: Mapped[float | None] = mapped_column(nullable=True)
     gross: Mapped[float | None] = mapped_column(nullable=True)
     description: Mapped[str] = mapped_column(Text, nullable=False)
-    price: Mapped[Decimal | None] = mapped_column(DECIMAL(10, 2), nullable=False)
+    price: Mapped[Decimal | None] = mapped_column(
+        DECIMAL(10, 2), nullable=False
+    )
 
     certification_id: Mapped[int] = mapped_column(
         ForeignKey("certifications.id"), nullable=False
     )
-    certification: Mapped["Certification"] = relationship(back_populates="movies")
+    certification: Mapped["Certification"] = relationship(
+        back_populates="movies"
+    )
 
     genres: Mapped[list["Genre"]] = relationship(
-        secondary="movie_genres", back_populates="movies"
+        secondary="movie_genres", back_populates="movies", lazy="selectin"
     )
     stars: Mapped[list["Star"]] = relationship(
-        secondary="movie_stars", back_populates="movies"
+        secondary="movie_stars", back_populates="movies", lazy="selectin"
     )
     directors: Mapped[list["Director"]] = relationship(
-        secondary="movie_directors", back_populates="movies"
+        secondary="movie_directors", back_populates="movies", lazy="selectin"
     )
     comments: Mapped[list["CommentModel"]] = relationship(
-        back_populates="movie", cascade="all, delete-orphan"
+        back_populates="movie", cascade="all, delete-orphan", lazy="selectin"
     )
     likes: Mapped[list["MovieLikeModel"]] = relationship(
-        back_populates="movie", cascade="all, delete-orphan"
+        back_populates="movie", cascade="all, delete-orphan", lazy="selectin"
     )
     favorites: Mapped[list["FavoriteModel"]] = relationship(
-        back_populates="movie", cascade="all, delete-orphan"
+        back_populates="movie", cascade="all, delete-orphan", lazy="selectin"
     )
     ratings: Mapped[list["MovieRatingModel"]] = relationship(
-        back_populates="movie", cascade="all, delete-orphan"
+        back_populates="movie", cascade="all, delete-orphan", lazy="selectin"
     )
 
 
@@ -161,7 +169,7 @@ class MovieLikeModel(Base):
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
     )
-    status: Mapped[LikeStatus] = mapped_column(nullable=False)
+    status: Mapped[LikeStatus] = mapped_column(String(10), nullable=False)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     movie: Mapped["Movie"] = relationship(back_populates="likes")
@@ -223,27 +231,31 @@ class CommentModel(Base):
 
     movie: Mapped["Movie"] = relationship(back_populates="comments")
     parent: Mapped["CommentModel | None"] = relationship(
-        remote_side="CommentModel.id", back_populates="replies"
+        remote_side=[id], back_populates="replies", lazy="selectin"
     )
-    replies: Mapped[list["CommentModel"]] = relationship(back_populates="parent")
+    replies: Mapped[list["CommentModel"]] = relationship(
+        back_populates="parent"
+    )
     likes: Mapped[list["CommentLikeModel"]] = relationship(
-        back_populates="comment", cascade="all, delete-orphan"
+        back_populates="comment", cascade="all, delete-orphan", lazy="selectin"
     )
 
 
 class CommentLikeModel(Base):
     __tablename__ = "comment_likes"
-    __table_args__ = (
-        UniqueConstraint("comment_id", "user_id", name="uq_comment_like_user"),
-    )
 
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True
+        ForeignKey("users.id", ondelete="CASCADE"),
+        primary_key=True,
+        nullable=False,
+        index=True,
     )
     comment_id: Mapped[int] = mapped_column(
-        ForeignKey("comments.id", ondelete="CASCADE"), nullable=False
+        ForeignKey("comments.id", ondelete="CASCADE"),
+        primary_key=True,
+        nullable=False,
     )
-    user_id:
+
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     comment: Mapped["CommentModel"] = relationship(back_populates="likes")
