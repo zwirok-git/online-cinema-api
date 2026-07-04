@@ -1,11 +1,15 @@
 from datetime import datetime
 from decimal import Decimal
 from enum import Enum
+from typing import TYPE_CHECKING
 
 from sqlalchemy import DECIMAL, DateTime, ForeignKey, String, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from core.database import Base
+
+if TYPE_CHECKING:
+    from models.movies import Movie
 
 
 class OrderStatus(str, Enum):
@@ -14,7 +18,7 @@ class OrderStatus(str, Enum):
     CANCELED = "canceled"
 
 
-class Order(Base):
+class OrderModel(Base):
     __tablename__ = "orders"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
@@ -34,15 +38,15 @@ class Order(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
-    items: Mapped[list["OrderItem"]] = relationship(
-        "OrderItem",
+    items: Mapped[list["OrderItemModel"]] = relationship(
+        "OrderItemModel",
         back_populates="order",
         cascade="all, delete-orphan",
         lazy="selectin",
     )
 
 
-class OrderItem(Base):
+class OrderItemModel(Base):
     __tablename__ = "order_items"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
@@ -61,5 +65,5 @@ class OrderItem(Base):
         DECIMAL(10, 2), nullable=False
     )
 
-    order: Mapped["Order"] = relationship("Order", back_populates="items")
-    movie: Mapped["Movie"] = relationship("MovieModel", lazy="selectin")
+    order: Mapped["OrderModel"] = relationship("OrderModel", back_populates="items")
+    movie: Mapped["Movie"] = relationship("Movie", lazy="selectin")
