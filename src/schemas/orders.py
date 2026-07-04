@@ -24,7 +24,7 @@ class OrderResponse(BaseModel):
     items: list[OrderItemResponse]
 
 
-class c(OrderResponse):
+class OrderCreateResponse(OrderResponse):
     """Returned when placing an order; has warnings about
     movies that were excluded (unavailable / already purchased)."""
 
