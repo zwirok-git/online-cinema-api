@@ -22,6 +22,7 @@ class Settings(BaseSettings):
 
     STRIPE_SECRET_KEY: str = "sk_test_placeholder"
     STRIPE_WEBHOOK_SECRET: str | None = None
+    BASE_URL: str = "http://localhost:8000"
 
     API_V1_PREFIX: str = "/api/v1"
 
