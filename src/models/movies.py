@@ -17,7 +17,8 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.core.database import Base
+from core.database import Base
+from models.users import UserModel
 
 
 class Genre(Base):
@@ -234,7 +235,7 @@ class CommentModel(Base):
         remote_side=[id], back_populates="replies", lazy="selectin"
     )
     replies: Mapped[list["CommentModel"]] = relationship(
-        back_populates="parent"
+        back_populates="parent", cascade="all, delete-orphan"
     )
     likes: Mapped[list["CommentLikeModel"]] = relationship(
         back_populates="comment", cascade="all, delete-orphan", lazy="selectin"
@@ -259,3 +260,4 @@ class CommentLikeModel(Base):
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     comment: Mapped["CommentModel"] = relationship(back_populates="likes")
+    user: Mapped["UserModel"] = relationship()
