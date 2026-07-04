@@ -23,5 +23,7 @@ class Settings(BaseSettings):
     STRIPE_SECRET_KEY: str = "sk_test_placeholder"
     STRIPE_WEBHOOK_SECRET: str | None = None
 
+    API_V1_PREFIX: str = "/api/v1"
+
 
 settings = Settings()
