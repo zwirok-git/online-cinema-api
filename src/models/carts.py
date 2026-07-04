@@ -1,20 +1,20 @@
 from datetime import datetime
 from typing import TYPE_CHECKING
 
-from sqlalchemy import DateTime, ForeignKey, Integer, UniqueConstraint, func
+from sqlalchemy import DateTime, ForeignKey, UniqueConstraint, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.core.database import Base
+from core.database import Base
 
 
 if TYPE_CHECKING:
-    from src.models.users import UserModel
+    from models.users import UserModel
 
 
 class Cart(Base):
     __tablename__ = "carts"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
     user_id: Mapped[int] = mapped_column(
         ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
@@ -41,7 +41,7 @@ class CartItem(Base):
         ),
     )
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    id: Mapped[int] = mapped_column(primary_key=True, index=True)
     cart_id: Mapped[int] = mapped_column(
         ForeignKey("carts.id", ondelete="CASCADE"),
         nullable=False,
