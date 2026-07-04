@@ -13,6 +13,7 @@ class Settings(BaseSettings):
     POSTGRES_DB_PORT: int = 5432
     POSTGRES_HOST: str = "localhost"
 
+
     @property
     def database_url(self) -> str:
         return (
