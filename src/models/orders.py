@@ -18,7 +18,7 @@ class OrderStatus(str, Enum):
     CANCELED = "canceled"
 
 
-class OrderModel(Base):
+class Order(Base):
     __tablename__ = "orders"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
@@ -38,15 +38,15 @@ class OrderModel(Base):
         DateTime(timezone=True), server_default=func.now(), nullable=False
     )
 
-    items: Mapped[list["OrderItemModel"]] = relationship(
-        "OrderItemModel",
+    items: Mapped[list["OrderItem"]] = relationship(
+        "OrderItem",
         back_populates="order",
         cascade="all, delete-orphan",
         lazy="selectin",
     )
 
 
-class OrderItemModel(Base):
+class OrderItem(Base):
     __tablename__ = "order_items"
 
     id: Mapped[int] = mapped_column(primary_key=True, index=True)
@@ -65,5 +65,5 @@ class OrderItemModel(Base):
         DECIMAL(10, 2), nullable=False
     )
 
-    order: Mapped["OrderModel"] = relationship("OrderModel", back_populates="items")
+    order: Mapped["Order"] = relationship("Order", back_populates="items")
     movie: Mapped["Movie"] = relationship("Movie", lazy="selectin")
