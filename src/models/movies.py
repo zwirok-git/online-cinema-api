@@ -118,9 +118,7 @@ class Movie(Base):
     meta_score: Mapped[float | None] = mapped_column(nullable=True)
     gross: Mapped[float | None] = mapped_column(nullable=True)
     description: Mapped[str] = mapped_column(Text, nullable=False)
-    price: Mapped[Decimal | None] = mapped_column(
-        DECIMAL(10, 2), nullable=False
-    )
+    price: Mapped[Decimal] = mapped_column(DECIMAL(10, 2), nullable=False)
 
     certification_id: Mapped[int] = mapped_column(
         ForeignKey("certifications.id"), nullable=False
