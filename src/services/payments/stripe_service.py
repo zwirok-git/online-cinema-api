@@ -1,3 +1,4 @@
+from datetime import datetime
 from decimal import Decimal
 
 import stripe
@@ -138,3 +139,17 @@ class StripePaymentService(IPaymentService):
 
     async def get_user_history(self, user_id: int) -> list[Payment]:
         return await self.payment_repo.get_user_payments(user_id=user_id)
+
+    async def get_all_payments_for_admin(
+        self,
+        user_id: int | None = None,
+        status: str | None = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
+    ) -> list[Payment]:
+        return await self.payment_repo.get_all_payments_admin(
+            user_id=user_id,
+            status=status,
+            start_date=start_date,
+            end_date=end_date,
+        )
