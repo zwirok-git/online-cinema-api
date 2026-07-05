@@ -1,6 +1,6 @@
 import enum
 from datetime import date, datetime
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Optional
 
 from sqlalchemy import (
     Boolean,
@@ -19,7 +19,6 @@ from core.database import Base
 
 
 if TYPE_CHECKING:
-    from models.carts import Cart
     from models.tokens import (
         ActivationTokenModel,
         PasswordResetTokenModel,
@@ -84,12 +83,12 @@ class UserModel(Base):
         "UserGroupModel", back_populates="users"
     )
 
-    activation_token: Mapped["ActivationTokenModel" | None] = relationship(
+    activation_token: Mapped[Optional["ActivationTokenModel"]] = relationship(
         "ActivationTokenModel",
         back_populates="user",
         cascade="all, delete-orphan",
     )
-    reset_token: Mapped["PasswordResetTokenModel" | None] = relationship(
+    reset_token: Mapped[Optional["PasswordResetTokenModel"]] = relationship(
         "PasswordResetTokenModel",
         back_populates="user",
         cascade="all, delete-orphan",
@@ -100,12 +99,8 @@ class UserModel(Base):
         cascade="all, delete-orphan",
     )
 
-    profile: Mapped["UserProfileModel" | None] = relationship(
+    profile: Mapped[Optional["UserProfileModel"]] = relationship(
         "UserProfileModel", back_populates="user", cascade="all, delete-orphan"
-    )
-
-    cart: Mapped["Cart" | None] = relationship(
-        "Cart", back_populates="user", cascade="all, delete-orphan"
     )
 
 

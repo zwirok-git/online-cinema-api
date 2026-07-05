@@ -1,5 +1,3 @@
-from typing import Optional
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -17,12 +15,12 @@ class PaymentRepository:
         await self.session.flush()
         return payment
 
-    async def get_by_id(self, payment_id: int) -> Optional[Payment]:
+    async def get_by_id(self, payment_id: int) -> Payment | None:
         query = select(Payment).where(Payment.id == payment_id)
         result = await self.session.execute(query)
         return result.scalar_one_or_none()
 
-    async def get_by_external_id(self, external_id: str) -> Optional[Payment]:
+    async def get_by_external_id(self, external_id: str) -> Payment | None:
         query = select(Payment).where(
             Payment.external_payment_id == external_id
         )
@@ -38,6 +36,20 @@ class PaymentRepository:
         )
         result = await self.session.execute(query)
         return list(result.scalars().all())
+
+    async def update_payment(
+        self, payment_id: int, update_data: dict
+    ) -> Payment | None:
+        payment = await self.get_by_id(payment_id)
+        if not payment:
+            return None
+
+        for key, value in update_data.items():
+            if hasattr(payment, key):
+                setattr(payment, key, value)
+
+        await self.session.flush()
+        return payment
 
 
 class PaymentItemRepository:
