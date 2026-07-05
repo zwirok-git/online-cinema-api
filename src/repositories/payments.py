@@ -37,6 +37,20 @@ class PaymentRepository:
         result = await self.session.execute(query)
         return list(result.scalars().all())
 
+    async def update_payment(
+        self, payment_id: int, update_data: dict
+    ) -> Payment | None:
+        payment = await self.get_by_id(payment_id)
+        if not payment:
+            return None
+
+        for key, value in update_data.items():
+            if hasattr(payment, key):
+                setattr(payment, key, value)
+
+        await self.session.flush()
+        return payment
+
 
 class PaymentItemRepository:
     def __init__(self, session: AsyncSession):
