@@ -14,11 +14,19 @@ class UserNotActivated(UserExceptions):
     pass
 
 
+class UserAlreadyActivated(UserExceptions):
+    pass
+
+
 class GroupDoesNotExist(UserExceptions):
     pass
 
 
 class InvalidCredentials(UserExceptions):
+    pass
+
+
+class PermissionDenied(UserExceptions):
     pass
 
 

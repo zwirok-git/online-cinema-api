@@ -65,7 +65,7 @@ class GroupRepository:
     async def get_group_by_name(
         self, group: UserGroupEnum
     ) -> UserGroupModel | None:
-        stmt = select(UserGroupModel).where(UserGroupModel.name == group.name)
+        stmt = select(UserGroupModel).where(UserGroupModel.name == group)
         result = await self.session.execute(stmt)
         group_model = result.scalars().first()
         return group_model

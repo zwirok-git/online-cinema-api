@@ -3,6 +3,8 @@ from datetime import datetime
 
 from pydantic import BaseModel, ConfigDict, EmailStr, field_validator
 
+from models.users import UserGroupEnum
+
 
 class PasswordValidatorMixin:
     @field_validator("password")
@@ -41,5 +43,27 @@ class UserRegisterResponseSchema(BaseModel):
     is_active: bool
 
 
+class MessageResponseSchema(BaseModel):
+    message: str
+
+
 class UserLoginRequestSchema(UserRegisterRequestSchema):
     pass
+
+
+class EmailRequestSchema(BaseModel):
+    email: EmailStr
+
+
+class PasswordResetRequestSchema(PasswordValidatorMixin, BaseModel):
+    token: str
+    password: str
+
+
+class PasswordChangeRequestSchema(PasswordValidatorMixin, BaseModel):
+    old_password: str
+    password: str
+
+
+class UserGroupUpdateRequestSchema(BaseModel):
+    group: UserGroupEnum
