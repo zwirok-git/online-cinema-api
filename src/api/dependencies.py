@@ -17,7 +17,7 @@ from services.payments.base_payment import IPaymentService
 from services.users import UserService
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/auth/login")
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/users/login")
 
 
 async def get_payment_service(
