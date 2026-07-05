@@ -4,6 +4,9 @@ import stripe
 from fastapi import HTTPException, status
 
 from core.config import settings
+from models.orders import OrderStatus
+from repositories.orders import OrderRepository
+from repositories.payments import PaymentRepository
 from services.exceptions import (
     InvalidOrderStatusException,
     OrderAccessDeniedException,
@@ -13,7 +16,11 @@ from services.payments.base_payment import IPaymentService
 
 
 class StripePaymentService(IPaymentService):
-    def __init__(self, payment_repo, order_repo):
+    def __init__(
+        self,
+        payment_repo: PaymentRepository,
+        order_repo: OrderRepository,
+    ):
         self.payment_repo = payment_repo
         self.order_repo = order_repo
         self.client = stripe.StripeClient(settings.STRIPE_SECRET_KEY)
@@ -21,46 +28,50 @@ class StripePaymentService(IPaymentService):
     async def create_checkout_session(
         self, order_id: int, user_id: int
     ) -> str:
-        order = await self.order_repo.get_by_id(order_id)
+        order = await self.order_repo.get_order_by_id(order_id)
         if not order:
             raise OrderNotFoundException(f"Order #{order_id} not found")
 
         if order.user_id != user_id:
             raise OrderAccessDeniedException("Access denied for this order")
 
-        if order.status != "pending":
+        if order.status != OrderStatus.PENDING:
             raise InvalidOrderStatusException(
                 f"Order cannot be paid. Current status: {order.status}"
             )
 
-        stripe_amount = int(order.total_amount * Decimal("100"))
+        total_amount = order.total_amount or Decimal("0.00")
+        stripe_amount = int(total_amount * Decimal("100"))
 
         try:
             checkout_session = (
                 await self.client.checkout.sessions.create_async(
-                    payment_method_types=["card"],
-                    line_items=[
-                        {
-                            "price_data": {
-                                "currency": "usd",
-                                "product_data": {
-                                    "name": f"Payment for Order #{order.id}",
+                    params={
+                        "payment_method_types": ["card"],
+                        "line_items": [
+                            {
+                                "price_data": {
+                                    "currency": "usd",
+                                    "product_data": {
+                                        "name": f"Payment for "
+                                        f"Order #{order.id}",
+                                    },
+                                    "unit_amount": stripe_amount,
                                 },
-                                "unit_amount": stripe_amount,
-                            },
-                            "quantity": 1,
-                        }
-                    ],
-                    mode="payment",
-                    success_url=(
-                        f"{settings.BASE_URL}/success"
-                        "?session_id={CHECKOUT_SESSION_ID}"
-                    ),
-                    cancel_url=f"{settings.BASE_URL}/cancel",
-                    metadata={
-                        "order_id": str(order.id),
-                        "user_id": str(user_id),
-                    },
+                                "quantity": 1,
+                            }
+                        ],
+                        "mode": "payment",
+                        "success_url": (
+                            f"{settings.BASE_URL}/success"
+                            "?session_id={CHECKOUT_SESSION_ID}"
+                        ),
+                        "cancel_url": f"{settings.BASE_URL}/cancel",
+                        "metadata": {
+                            "order_id": str(order.id),
+                            "user_id": str(user_id),
+                        },
+                    }
                 )
             )
 
@@ -77,7 +88,7 @@ class StripePaymentService(IPaymentService):
                 "status": "pending",
                 "external_payment_id": checkout_session.id,
             }
-            await self.payment_repo.create(payment_data)
+            await self.payment_repo.create_payment(payment_data)
 
             return str(checkout_session.url)
 
@@ -112,9 +123,13 @@ class StripePaymentService(IPaymentService):
                 external_payment_id
             )
             if payment:
-                await self.payment_repo.update(payment.id, {"status": "paid"})
+                await self.payment_repo.update_payment(
+                    payment.id, {"status": "paid"}
+                )
 
-            await self.order_repo.update(order_id, {"status": "paid"})
+            order = await self.order_repo.get_order_by_id(order_id)
+            if order:
+                await self.order_repo.update_status(order, OrderStatus.PAID)
 
             # TODO Telegram or Celery
 
