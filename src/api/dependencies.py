@@ -1,23 +1,24 @@
 from typing import Annotated
 
-import jwt
 from fastapi import Depends, HTTPException, status
-from fastapi.security import OAuth2PasswordBearer
+from fastapi.security import HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.config import settings
 from core.database import get_db
-from exceptions.auth import UserDoesNotExists
+from exceptions.auth import TokenExceptions, UserExceptions
 from models.users import UserModel
 from repositories.orders import OrderRepository
 from repositories.payments import PaymentRepository
+from repositories.tokens import TokenRepository
 from repositories.users import GroupRepository, UserRepository
+from security.jwt_tokens import JWTService
 from services.payments import StripePaymentService
 from services.payments.base_payment import IPaymentService
+from services.tokens import TokenService
 from services.users import UserService
 
 
-oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/users/login")
+http_bearer = HTTPBearer()
 
 
 async def get_payment_service(
@@ -40,37 +41,36 @@ async def get_user_service(
     )
 
 
+async def get_token_service(
+    db_session: Annotated[AsyncSession, Depends(get_db)],
+):
+    return TokenService(TokenRepository(session=db_session))
+
+
+async def get_jwt_service():
+    return JWTService()
+
+
 async def get_current_user(
-    token: Annotated[str, Depends(oauth2_scheme)],
+    token: Annotated[str, Depends(http_bearer)],
     user_service: Annotated[UserService, Depends(get_user_service)],
+    jwt_service: Annotated[JWTService, Depends(get_jwt_service)],
 ) -> UserModel:
-    credentials_exception = HTTPException(
-        status_code=status.HTTP_401_UNAUTHORIZED,
-        detail="Could not validate credentials",
-        headers={"WWW-Authenticate": "Bearer"},
-    )
-
+    access_token = token.credentials
     try:
-        payload = jwt.decode(
-            token,
-            settings.TOKEN_SECRET_KEY,
-            algorithms=[settings.TOKEN_ALGORITHM],
-        )
-        email: str | None = payload.get("sub")
-        if email is None:
-            raise credentials_exception
-    except (jwt.PyJWTError, ValueError):
-        raise credentials_exception from None
-
-    try:
-        user = await user_service.get_user_by_email(email=email)
-    except UserDoesNotExists:
-        raise credentials_exception from None
+        payload = jwt_service.decode_token(access_token)
+        user_id = int(payload.get("sub"))
+        user = await user_service.get_user_by_id(user_id=user_id)
+    except (TokenExceptions, UserExceptions) as error:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail=str(error),
+            headers={"WWW-Authenticate": "Bearer"},
+        ) from error
 
     if not user.is_active:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="User is inactive",
+            detail="User is inactive.",
         )
-
     return user
