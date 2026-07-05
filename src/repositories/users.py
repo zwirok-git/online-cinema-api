@@ -11,36 +11,40 @@ class UserRepository:
     def __init__(self, session: AsyncSession) -> None:
         self.session = session
 
-    async def get_by_id(self, user_id: int) -> UserModel | None:
-        stmt = (
-            select(UserModel)
-            .where(UserModel.id == user_id)
-            .options(selectinload(UserModel.group))
-        )
-        result = await self.session.execute(stmt)
-        user = result.scalar_one_or_none()
-        return user
+    async def get_by_id(
+        self, user_id: int, with_relations: bool = False
+    ) -> UserModel | None:
+        stmt = select(UserModel).where(UserModel.id == user_id)
+        if with_relations:
+            stmt = stmt.options(
+                selectinload(UserModel.group), selectinload(UserModel.profile)
+            )
 
-    async def get_by_email(self, user_email: str) -> UserModel | None:
-        stmt = (
-            select(UserModel)
-            .where(UserModel.email == user_email)
-            .options(selectinload(UserModel.group))
-        )
         result = await self.session.execute(stmt)
-        user = result.scalar_one_or_none()
-        return user
+        return result.scalar_one_or_none()
+
+    async def get_by_email(
+        self, user_email: str, with_relations: bool = False
+    ) -> UserModel | None:
+        stmt = select(UserModel).where(UserModel.email == user_email)
+        if with_relations:
+            stmt = stmt.options(
+                selectinload(UserModel.group), selectinload(UserModel.profile)
+            )
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
 
     async def get_all(self, limit: int, offset: int) -> Sequence[UserModel]:
         stmt = (
             select(UserModel)
+            .options(
+                selectinload(UserModel.group), selectinload(UserModel.profile)
+            )
             .limit(limit)
             .offset(offset)
-            .options(selectinload(UserModel.group))
         )
         result = await self.session.execute(stmt)
-        users = result.scalars().all()
-        return users
+        return result.scalars().all()
 
     async def create(self, user: UserModel) -> UserModel:
         self.session.add(user)
@@ -63,9 +67,18 @@ class GroupRepository:
         self.session = session
 
     async def get_group_by_name(
-        self, group: UserGroupEnum
+        self, name: UserGroupEnum
     ) -> UserGroupModel | None:
-        stmt = select(UserGroupModel).where(UserGroupModel.name == group.name)
+        stmt = select(UserGroupModel).where(UserGroupModel.name == name)
         result = await self.session.execute(stmt)
-        group_model = result.scalars().first()
-        return group_model
+        return result.scalar_one_or_none()
+
+    async def get_group_by_id(self, group_id: int) -> UserGroupModel | None:
+        stmt = select(UserGroupModel).where(UserGroupModel.id == group_id)
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()
+
+    async def list_all(self) -> list[UserGroupModel]:
+        stmt = select(UserGroupModel)
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
