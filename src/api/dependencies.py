@@ -11,7 +11,7 @@ from repositories.orders import OrderRepository
 from repositories.payments import PaymentRepository
 from repositories.tokens import TokenRepository
 from repositories.users import GroupRepository, UserRepository
-from security.jwt_tokens import JWTService
+from services.jwt_tokens import JWTService
 from services.payments import StripePaymentService
 from services.payments.base_payment import IPaymentService
 from services.tokens import TokenService

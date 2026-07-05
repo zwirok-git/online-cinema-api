@@ -19,7 +19,7 @@ class JWTService:
     ) -> str:
         now = datetime.now(timezone.utc)
         to_encode = {
-            "sub": data.get("user_id"),
+            "sub": str(data["user_id"]),
             "type": "access",
             "iat": now,
             "exp": now + self._access_token_expire,
@@ -35,7 +35,7 @@ class JWTService:
     ):
         now = datetime.now(timezone.utc)
         to_encode = {
-            "sub": data.get("user_id"),
+            "sub": str(data["user_id"]),
             "type": "refresh",
             "iat": now,
             "exp": now + self._refresh_token_expire,
