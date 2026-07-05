@@ -1,9 +1,11 @@
+from datetime import datetime
 from decimal import Decimal
 
 import stripe
 from fastapi import HTTPException, status
 
 from core.config import settings
+from models import Payment
 from models.orders import OrderStatus
 from repositories.orders import OrderRepository
 from repositories.payments import PaymentRepository
@@ -134,3 +136,20 @@ class StripePaymentService(IPaymentService):
             # TODO Telegram or Celery
 
         return True
+
+    async def get_user_history(self, user_id: int) -> list[Payment]:
+        return await self.payment_repo.get_user_payments(user_id=user_id)
+
+    async def get_all_payments_for_admin(
+        self,
+        user_id: int | None = None,
+        status: str | None = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
+    ) -> list[Payment]:
+        return await self.payment_repo.get_all_payments_admin(
+            user_id=user_id,
+            status=status,
+            start_date=start_date,
+            end_date=end_date,
+        )

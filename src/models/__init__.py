@@ -1,3 +1,4 @@
+from .carts import Cart, CartItem
 from .movies import (
     Certification,
     CommentLikeModel,
@@ -48,4 +49,6 @@ __all__ = [
     "MovieRatingModel",
     "CommentLikeModel",
     "CommentModel",
+    "Cart",
+    "CartItem",
 ]
