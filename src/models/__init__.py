@@ -25,8 +25,6 @@ from .users import UserGroupModel, UserModel, UserProfileModel
 
 
 __all__ = [
-    "Cart",
-    "CartItem",
     "Payment",
     "PaymentItem",
     "PaymentStatus",
@@ -51,4 +49,6 @@ __all__ = [
     "MovieRatingModel",
     "CommentLikeModel",
     "CommentModel",
+    "Cart",
+    "CartItem",
 ]

@@ -8,6 +8,7 @@ from core.database import Base
 
 
 if TYPE_CHECKING:
+    from models.movies import Movie
     from models.users import UserModel
 
 
@@ -59,3 +60,4 @@ class CartItem(Base):
     )
 
     cart: Mapped["Cart"] = relationship("Cart", back_populates="items")
+    movie: Mapped["Movie"] = relationship("MovieModel")
