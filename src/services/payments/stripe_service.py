@@ -4,6 +4,7 @@ import stripe
 from fastapi import HTTPException, status
 
 from core.config import settings
+from models import Payment
 from models.orders import OrderStatus
 from repositories.orders import OrderRepository
 from repositories.payments import PaymentRepository
@@ -134,3 +135,6 @@ class StripePaymentService(IPaymentService):
             # TODO Telegram or Celery
 
         return True
+
+    async def get_user_history(self, user_id: int) -> list[Payment]:
+        return await self.payment_repo.get_user_payments(user_id=user_id)

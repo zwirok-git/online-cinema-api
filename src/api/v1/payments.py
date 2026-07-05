@@ -8,7 +8,9 @@ from models import UserModel
 from schemas.payments import (
     CheckoutSessionCreateSchema,
     CheckoutSessionResponseSchema,
+    UserPaymentHistorySchema,
 )
+from services.exceptions import InvalidOrderStatusException
 from services.payments.base_payment import IPaymentService
 
 
@@ -25,10 +27,38 @@ async def create_checkout_session(
     current_user: Annotated[UserModel, Depends(get_current_user)],
     payment_service: Annotated[IPaymentService, Depends(get_payment_service)],
 ):
-    checkout_url = await payment_service.create_checkout_session(
-        order_id=payload.order_id, user_id=current_user.id
-    )
-    return {"checkout_url": checkout_url}
+    try:
+        checkout_url = await payment_service.create_checkout_session(
+            order_id=payload.order_id, user_id=current_user.id
+        )
+        return {"checkout_url": checkout_url}
+
+    except InvalidOrderStatusException as error:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail={
+                "message": str(error),
+                "recommendation": (
+                    "This order cannot be paid anymore. "
+                    "It might be canceled or already paid. "
+                    "Please check your orders history."
+                ),
+            },
+        ) from None
+    except HTTPException as error:
+        if error.status_code == 500:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail={
+                    "message": "Payment system is currently unavailable.",
+                    "recommendation": (
+                        "Stripe generation failed. "
+                        "Try a different payment method later "
+                        "or contact support."
+                    ),
+                },
+            ) from None
+        raise error
 
 
 @router.post("/webhook", include_in_schema=False)
@@ -54,3 +84,15 @@ async def stripe_webhook(
     return JSONResponse(
         content={"status": "success"}, status_code=status.HTTP_200_OK
     )
+
+
+@router.get(
+    "/history",
+    response_model=list[UserPaymentHistorySchema],
+    status_code=status.HTTP_200_OK,
+)
+async def get_payment_history(
+    current_user: Annotated[UserModel, Depends(get_current_user)],
+    payment_service: Annotated[IPaymentService, Depends(get_payment_service)],
+):
+    return await payment_service.get_user_history(user_id=current_user.id)
