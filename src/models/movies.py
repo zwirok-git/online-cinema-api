@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import enum
 import uuid as uuid_pkg
 from datetime import datetime
@@ -17,8 +15,8 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from core.database import Base
-from models.users import UserModel
+from src.core.database import Base
+from src.models.users import UserModel
 
 
 class Genre(Base):
@@ -136,16 +134,16 @@ class Movie(Base):
     directors: Mapped[list["Director"]] = relationship(
         secondary="movie_directors", back_populates="movies", lazy="selectin"
     )
-    comments: Mapped[list["CommentModel"]] = relationship(
+    comments: Mapped[list["Comment"]] = relationship(
         back_populates="movie", cascade="all, delete-orphan", lazy="selectin"
     )
-    likes: Mapped[list["MovieLikeModel"]] = relationship(
+    likes: Mapped[list["MovieLike"]] = relationship(
         back_populates="movie", cascade="all, delete-orphan", lazy="selectin"
     )
-    favorites: Mapped[list["FavoriteModel"]] = relationship(
+    favorites: Mapped[list["Favorite"]] = relationship(
         back_populates="movie", cascade="all, delete-orphan", lazy="selectin"
     )
-    ratings: Mapped[list["MovieRatingModel"]] = relationship(
+    ratings: Mapped[list["MovieRating"]] = relationship(
         back_populates="movie", cascade="all, delete-orphan", lazy="selectin"
     )
 
@@ -155,7 +153,7 @@ class LikeStatus(str, enum.Enum):
     DISLIKE = "dislike"
 
 
-class MovieLikeModel(Base):
+class MovieLike(Base):
     __tablename__ = "movie_likes"
     __table_args__ = (
         UniqueConstraint("movie_id", "user_id", name="uq_movie_like_user"),
@@ -174,7 +172,7 @@ class MovieLikeModel(Base):
     movie: Mapped["Movie"] = relationship(back_populates="likes")
 
 
-class FavoriteModel(Base):
+class Favorite(Base):
     __tablename__ = "favorites"
     __table_args__ = (
         UniqueConstraint("movie_id", "user_id", name="uq_favorite_movie_user"),
@@ -192,7 +190,7 @@ class FavoriteModel(Base):
     movie: Mapped["Movie"] = relationship(back_populates="favorites")
 
 
-class MovieRatingModel(Base):
+class MovieRating(Base):
     __tablename__ = "movie_ratings"
     __table_args__ = (
         UniqueConstraint("movie_id", "user_id", name="uq_rating_movie_user"),
@@ -212,7 +210,7 @@ class MovieRatingModel(Base):
     movie: Mapped["Movie"] = relationship(back_populates="ratings")
 
 
-class CommentModel(Base):
+class Comment(Base):
     __tablename__ = "comments"
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -229,18 +227,18 @@ class CommentModel(Base):
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     movie: Mapped["Movie"] = relationship(back_populates="comments")
-    parent: Mapped["CommentModel | None"] = relationship(
+    parent: Mapped["Comment | None"] = relationship(
         remote_side=[id], back_populates="replies", lazy="selectin"
     )
-    replies: Mapped[list["CommentModel"]] = relationship(
+    replies: Mapped[list["Comment"]] = relationship(
         back_populates="parent", cascade="all, delete-orphan"
     )
-    likes: Mapped[list["CommentLikeModel"]] = relationship(
+    likes: Mapped[list["CommentLike"]] = relationship(
         back_populates="comment", cascade="all, delete-orphan", lazy="selectin"
     )
 
 
-class CommentLikeModel(Base):
+class CommentLike(Base):
     __tablename__ = "comment_likes"
 
     user_id: Mapped[int] = mapped_column(
@@ -257,5 +255,5 @@ class CommentLikeModel(Base):
 
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
-    comment: Mapped["CommentModel"] = relationship(back_populates="likes")
+    comment: Mapped["Comment"] = relationship(back_populates="likes")
     user: Mapped["UserModel"] = relationship()

@@ -1,5 +1,3 @@
-from __future__ import annotations
-
 import enum
 import uuid as uuid_pkg
 from datetime import datetime
