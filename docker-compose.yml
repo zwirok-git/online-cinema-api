@@ -27,6 +27,7 @@ services:
         condition: service_healthy
     volumes:
       - ./src:/app/src
+      - ./alembic:/app/alembic
 
 volumes:
   postgres_data:
