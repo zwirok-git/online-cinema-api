@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
@@ -50,6 +52,30 @@ class PaymentRepository:
 
         await self.session.flush()
         return payment
+
+    async def get_all_payments_admin(
+        self,
+        user_id: int | None = None,
+        status: str | None = None,
+        start_date: datetime | None = None,
+        end_date: datetime | None = None,
+    ) -> list[Payment]:
+        query = select(Payment).order_by(Payment.created_at.desc())
+
+        if user_id is not None:
+            query = query.where(Payment.user_id == user_id)
+
+        if status is not None:
+            query = query.where(Payment.status == status)
+
+        if start_date is not None:
+            query = query.where(Payment.created_at >= start_date)
+
+        if end_date is not None:
+            query = query.where(Payment.created_at <= end_date)
+
+        result = await self.session.execute(query)
+        return list(result.scalars().all())
 
 
 class PaymentItemRepository:

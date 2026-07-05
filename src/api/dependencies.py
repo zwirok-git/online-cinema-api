@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from core.config import settings
 from core.database import get_db
 from exceptions.auth import UserDoesNotExists
-from models.users import UserModel
+from models.users import UserGroupEnum, UserModel
 from repositories.orders import OrderRepository
 from repositories.payments import PaymentRepository
 from repositories.users import GroupRepository, UserRepository
@@ -74,3 +74,18 @@ async def get_current_user(
         )
 
     return user
+
+
+async def get_current_admin(
+    current_user: UserModel = Depends(get_current_user),
+) -> UserModel:
+    if not current_user.group or current_user.group.name not in (
+        UserGroupEnum.ADMIN,
+        UserGroupEnum.MODERATOR,
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. Only for moderators/admins.",
+        )
+
+    return current_user

@@ -1,9 +1,22 @@
+from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, Header, HTTPException, Request, status
+from fastapi import (
+    APIRouter,
+    Depends,
+    Header,
+    HTTPException,
+    Query,
+    Request,
+    status,
+)
 from fastapi.responses import JSONResponse
 
-from api.dependencies import get_current_user, get_payment_service
+from api.dependencies import (
+    get_current_admin,
+    get_current_user,
+    get_payment_service,
+)
 from models import UserModel
 from schemas.payments import (
     CheckoutSessionCreateSchema,
@@ -96,3 +109,32 @@ async def get_payment_history(
     payment_service: Annotated[IPaymentService, Depends(get_payment_service)],
 ):
     return await payment_service.get_user_history(user_id=current_user.id)
+
+
+@router.get(
+    "/admin/list",
+    response_model=list[UserPaymentHistorySchema],
+    status_code=status.HTTP_200_OK,
+)
+async def admin_get_all_payments(
+    current_admin: Annotated[UserModel, Depends(get_current_admin)],
+    payment_service: Annotated[IPaymentService, Depends(get_payment_service)],
+    user_id: Annotated[
+        int | None, Query(description="Filter by User ID")
+    ] = None,
+    payment_status: Annotated[
+        str | None, Query(alias="status", description="Filter by status")
+    ] = None,
+    start_date: Annotated[
+        datetime | None, Query(description="Filter from date (YYYY-MM-DD)")
+    ] = None,
+    end_date: Annotated[
+        datetime | None, Query(description="Filter to date (YYYY-MM-DD)")
+    ] = None,
+):
+    return await payment_service.get_all_payments_for_admin(
+        user_id=user_id,
+        status=payment_status,
+        start_date=start_date,
+        end_date=end_date,
+    )
