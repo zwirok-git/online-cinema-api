@@ -1,3 +1,4 @@
+from .carts import Cart, CartItem
 from .movies import (
     Certification,
     CommentLikeModel,
@@ -24,6 +25,8 @@ from .users import UserGroupModel, UserModel, UserProfileModel
 
 
 __all__ = [
+    "Cart",
+    "CartItem",
     "Payment",
     "PaymentItem",
     "PaymentStatus",
