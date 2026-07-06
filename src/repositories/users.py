@@ -5,7 +5,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from models.users import (
-    UserGroupEnum,
     UserGroupModel,
     UserModel,
     UserProfileModel,
@@ -77,7 +76,7 @@ class UserRepository:
     async def get_total_users(self) -> int:
         stmt = select(func.count(UserModel.id))
         result = await self.session.execute(stmt)
-        return result.scalar()
+        return result.scalar() or 0
 
 
 class GroupRepository:
@@ -85,9 +84,9 @@ class GroupRepository:
         self.session = session
 
     async def get_group_by_name(
-        self, name: UserGroupEnum
+        self, group_name: str
     ) -> UserGroupModel | None:
-        stmt = select(UserGroupModel).where(UserGroupModel.name == name)
+        stmt = select(UserGroupModel).where(UserGroupModel.name == group_name)
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
@@ -96,7 +95,7 @@ class GroupRepository:
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def list_all(self) -> list[UserGroupModel]:
+    async def list_all(self) -> Sequence[UserGroupModel]:
         stmt = select(UserGroupModel)
         result = await self.session.execute(stmt)
         return result.scalars().all()

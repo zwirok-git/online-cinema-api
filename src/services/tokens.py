@@ -14,7 +14,7 @@ class TokenService:
 
     async def get_activation_token_by_token(
         self, token_value: str
-    ) -> ActivationTokenModel | None:
+    ) -> ActivationTokenModel:
         token = await self.token_repository.get_activation_token_by_token(
             token_value=token_value
         )
@@ -85,7 +85,7 @@ class TokenService:
         )
         return reset_token
 
-    async def delete_reset_token(self, token: ActivationTokenModel) -> None:
+    async def delete_reset_token(self, token: PasswordResetTokenModel) -> None:
         await self.token_repository.delete_password_reset_token(token)
 
     async def get_refresh_token_by_token(
@@ -112,11 +112,12 @@ class TokenService:
         await self.token_repository.create_refresh_token(token=refresh_token)
         return refresh_token
 
-    async def delete_refresh_token(self, token_value: int) -> None:
+    async def delete_refresh_token(self, token_value: str) -> None:
         token = await self.token_repository.get_refresh_token_by_token(
             token_value=token_value
         )
-        await self.token_repository.delete_refresh_token(token=token)
+        if token is not None:
+            await self.token_repository.delete_refresh_token(token=token)
 
     async def delete_all_refresh_tokens(self, user_id: int) -> None:
         await self.token_repository.delete_users_refresh_tokens(

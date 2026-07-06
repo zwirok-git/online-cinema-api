@@ -68,7 +68,7 @@ class UserGroupResponseSchema(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
     id: int
-    name: str
+    name: UserGroupEnum
 
 
 class UserMeRequestSchema(BaseModel):
@@ -91,7 +91,7 @@ class UserMeResponseSchema(BaseModel):
     first_name: str | None
     last_name: str | None
     avatar: str | None
-    gender: str | None
+    gender: GenderEnum | None
     date_of_birth: date | None
     info: str | None
 

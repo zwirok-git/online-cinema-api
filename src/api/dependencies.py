@@ -1,7 +1,7 @@
 from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPBearer
+from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
@@ -63,7 +63,7 @@ async def get_user_service(
 
 
 async def get_current_user(
-    token: Annotated[str, Depends(http_bearer)],
+    token: Annotated[HTTPAuthorizationCredentials, Depends(http_bearer)],
     user_service: Annotated[UserService, Depends(get_user_service)],
     jwt_service: Annotated[JWTService, Depends(get_jwt_service)],
 ) -> UserModel:
@@ -78,7 +78,11 @@ async def get_current_user(
         if payload.get("type") != "access":
             raise InvalidToken("Access token is invalid.")
 
-        user_id = int(payload.get("sub"))
+        sub = payload.get("sub")
+        if sub is None:
+            raise InvalidToken("Token missing subject claim.")
+        user_id = int(sub)
+
         user = await user_service.get_user_by_id(
             user_id=user_id, with_relations=True
         )
@@ -118,6 +122,7 @@ async def get_current_only_admin(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied. Only for admins.",
         )
+    return current_user
 
 
 async def get_order_service(

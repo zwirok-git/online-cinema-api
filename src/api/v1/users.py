@@ -13,6 +13,8 @@ from models import UserModel
 from schemas.tokens import TokenPairResponseSchema, TokenRefreshRequestSchema
 from schemas.users import (
     UserGroupRequestSchema,
+    UserGroupResponseSchema,
+    UserListItemResponseSchema,
     UserListResponseSchema,
     UserLoginRequestSchema,
     UserMeRequestSchema,
@@ -293,19 +295,19 @@ async def me(
     user_service: Annotated[UserService, Depends(get_user_service)],
     current_user: Annotated[UserModel, Depends(get_current_user)],
 ):
-    user_with_profile = await user_service.get_me_profile(user=current_user)
+    user_model = await user_service.get_me_profile(user=current_user)
     return UserMeResponseSchema(
-        id=user_with_profile.id,
-        email=user_with_profile.email,
-        created_at=user_with_profile.created_at,
-        group=user_with_profile.group,
-        is_active=user_with_profile.is_active,
-        first_name=user_with_profile.profile.first_name,
-        last_name=user_with_profile.profile.last_name,
-        avatar=user_with_profile.profile.avatar,
-        date_of_birth=user_with_profile.profile.date_of_birth,
-        gender=user_with_profile.profile.gender,
-        info=user_with_profile.profile.info,
+        id=user_model.id,
+        email=user_model.email,
+        created_at=user_model.created_at,
+        group=UserGroupResponseSchema.model_validate(user_model.group),
+        is_active=user_model.is_active,
+        first_name=user_model.profile.first_name,
+        last_name=user_model.profile.last_name,
+        avatar=user_model.profile.avatar,
+        date_of_birth=user_model.profile.date_of_birth,
+        gender=user_model.profile.gender,
+        info=user_model.profile.info,
     )
 
 
@@ -316,22 +318,21 @@ async def me_patch(
     profile_data: UserMeRequestSchema,
 ):
     update_fields = profile_data.model_dump(exclude_unset=True)
-    print(update_fields)
-    user_with_profile = await user_service.change_profile(
+    user_model = await user_service.change_profile(
         user=current_user, profile_data=update_fields
     )
     return UserMeResponseSchema(
-        id=user_with_profile.id,
-        email=user_with_profile.email,
-        created_at=user_with_profile.created_at,
-        group=user_with_profile.group,
-        is_active=user_with_profile.is_active,
-        first_name=user_with_profile.profile.first_name,
-        last_name=user_with_profile.profile.last_name,
-        avatar=user_with_profile.profile.avatar,
-        date_of_birth=user_with_profile.profile.date_of_birth,
-        gender=user_with_profile.profile.gender,
-        info=user_with_profile.profile.info,
+        id=user_model.id,
+        email=user_model.email,
+        created_at=user_model.created_at,
+        group=UserGroupResponseSchema.model_validate(user_model.group),
+        is_active=user_model.is_active,
+        first_name=user_model.profile.first_name,
+        last_name=user_model.profile.last_name,
+        avatar=user_model.profile.avatar,
+        date_of_birth=user_model.profile.date_of_birth,
+        gender=user_model.profile.gender,
+        info=user_model.profile.info,
     )
 
 
@@ -339,10 +340,18 @@ async def me_patch(
 async def list_users(
     user_service: Annotated[UserService, Depends(get_user_service)],
     current_admin: Annotated[UserModel, Depends(get_current_only_admin)],
+    limit: Annotated[int, Query(10, gt=0, le=20)],
+    offset: Annotated[int, Query(0, ge=0)],
 ):
-    users, total_users = await user_service.get_all_users()
+    users_models, total_users = await user_service.get_all_users(
+        limit=limit,
+        offset=offset,
+    )
     return UserListResponseSchema(
-        users=users,
+        users=[
+            UserListItemResponseSchema.model_validate(user_model)
+            for user_model in users_models
+        ],
         total_users=total_users,
     )
 
@@ -353,21 +362,21 @@ async def get_user_by_id(
     current_admin: Annotated[UserModel, Depends(get_current_only_admin)],
     user_id: int,
 ):
-    user_with_profile = await user_service.get_user_by_id(
+    user_model = await user_service.get_user_by_id(
         user_id=user_id, with_relations=True
     )
     return UserMeResponseSchema(
-        id=user_with_profile.id,
-        email=user_with_profile.email,
-        created_at=user_with_profile.created_at,
-        group=user_with_profile.group,
-        is_active=user_with_profile.is_active,
-        first_name=user_with_profile.profile.first_name,
-        last_name=user_with_profile.profile.last_name,
-        avatar=user_with_profile.profile.avatar,
-        date_of_birth=user_with_profile.profile.date_of_birth,
-        gender=user_with_profile.profile.gender,
-        info=user_with_profile.profile.info,
+        id=user_model.id,
+        email=user_model.email,
+        created_at=user_model.created_at,
+        group=UserGroupResponseSchema.model_validate(user_model.group),
+        is_active=user_model.is_active,
+        first_name=user_model.profile.first_name,
+        last_name=user_model.profile.last_name,
+        avatar=user_model.profile.avatar,
+        date_of_birth=user_model.profile.date_of_birth,
+        gender=user_model.profile.gender,
+        info=user_model.profile.info,
     )
 
 
@@ -378,21 +387,21 @@ async def change_group(
     group_data: UserGroupRequestSchema,
     user_id: int,
 ):
-    user = await user_service.change_group(
-        user_id=user_id, group_name=group_data.name
+    user_model = await user_service.change_group(
+        user_id=user_id, group_name=str(group_data.name.name)
     )
     return UserMeResponseSchema(
-        id=user.id,
-        email=user.email,
-        created_at=user.created_at,
-        group=user.group,
-        is_active=user.is_active,
-        first_name=user.profile.first_name,
-        last_name=user.profile.last_name,
-        avatar=user.profile.avatar,
-        date_of_birth=user.profile.date_of_birth,
-        gender=user.profile.gender,
-        info=user.profile.info,
+        id=user_model.id,
+        email=user_model.email,
+        created_at=user_model.created_at,
+        group=UserGroupResponseSchema.model_validate(user_model.group),
+        is_active=user_model.is_active,
+        first_name=user_model.profile.first_name,
+        last_name=user_model.profile.last_name,
+        avatar=user_model.profile.avatar,
+        date_of_birth=user_model.profile.date_of_birth,
+        gender=user_model.profile.gender,
+        info=user_model.profile.info,
     )
 
 
@@ -402,17 +411,17 @@ async def change_status(
     current_admin: Annotated[UserModel, Depends(get_current_only_admin)],
     user_id: int,
 ):
-    user = await user_service.change_status(user_id=user_id)
+    user_model = await user_service.change_status(user_id=user_id)
     return UserMeResponseSchema(
-        id=user.id,
-        email=user.email,
-        created_at=user.created_at,
-        group=user.group,
-        is_active=user.is_active,
-        first_name=user.profile.first_name,
-        last_name=user.profile.last_name,
-        avatar=user.profile.avatar,
-        date_of_birth=user.profile.date_of_birth,
-        gender=user.profile.gender,
-        info=user.profile.info,
+        id=user_model.id,
+        email=user_model.email,
+        created_at=user_model.created_at,
+        group=UserGroupResponseSchema.model_validate(user_model.group),
+        is_active=user_model.is_active,
+        first_name=user_model.profile.first_name,
+        last_name=user_model.profile.last_name,
+        avatar=user_model.profile.avatar,
+        date_of_birth=user_model.profile.date_of_birth,
+        gender=user_model.profile.gender,
+        info=user_model.profile.info,
     )

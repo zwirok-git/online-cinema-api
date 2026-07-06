@@ -1,3 +1,5 @@
+from typing import Sequence
+
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
@@ -11,7 +13,7 @@ from exceptions.auth import (
     UserDoesNotExists,
     UserNotActivated,
 )
-from models.users import UserGroupEnum, UserModel, UserProfileModel
+from models.users import UserModel, UserProfileModel
 from repositories.users import GroupRepository, UserRepository
 from security.passwords import get_password_hash, verify_password
 from services.jwt_tokens import JWTService
@@ -43,6 +45,8 @@ class UserService:
         user = await self.user_repository.get_by_id(
             user_id, with_relations=with_relations
         )
+        if user is None:
+            raise UserDoesNotExists("User with this id does not exist.")
         return user
 
     async def register_user(self, email: str, raw_password: str) -> UserModel:
@@ -51,9 +55,7 @@ class UserService:
             raise UserAlreadyExists("User with this email already exists.")
 
         hashed_password = get_password_hash(password=raw_password)
-        group = await self.group_repository.get_group_by_name(
-            UserGroupEnum.USER
-        )
+        group = await self.group_repository.get_group_by_name("user")
         if group is None:
             raise GroupDoesNotExist("Default user group with does not exists.")
 
@@ -116,6 +118,9 @@ class UserService:
         user_model = await self.user_repository.get_by_id(
             user_id=token_model.user_id
         )
+        if user_model is None:
+            raise UserDoesNotExists("User does not exist.")
+
         user_model.is_active = True
         await self.token_service.delete_activation_token(token_model)
         await self.session.commit()
@@ -154,9 +159,13 @@ class UserService:
         )
         if decoded_refresh_token_data.get("type") != "refresh":
             raise InvalidToken("Not a refresh token.")
-        user_id = int(decoded_refresh_token_data.get("sub"))
 
-        await self.token_service.get_refresh_token_by_token(refresh_token)
+        token = await self.token_service.get_refresh_token_by_token(
+            refresh_token
+        )
+        if token is None:
+            raise InvalidToken("Invalid refresh token.")
+        user_id = token.user_id
         await self.token_service.delete_refresh_token(
             token_value=refresh_token
         )
@@ -186,6 +195,8 @@ class UserService:
 
     async def reset_password(self, user_email: str):
         user = await self.user_repository.get_by_email(user_email=user_email)
+        if user is None:
+            raise UserDoesNotExists("User does not exist.")
 
         existing_token = await self.token_service.get_reset_token_by_user_id(
             user_id=user.id
@@ -211,7 +222,12 @@ class UserService:
         token = await self.token_service.get_reset_token_by_token(
             token_value=reset_token
         )
+        if token is None:
+            raise InvalidToken("Invalid password reset token.")
         user = await self.user_repository.get_by_id(user_id=token.user_id)
+        if user is None:
+            raise UserDoesNotExists("User does not exist.")
+
         user.hashed_password = get_password_hash(new_password)
         await self.token_service.delete_reset_token(token=token)
         await self.session.commit()
@@ -220,7 +236,9 @@ class UserService:
         user_with_relations = await self.user_repository.get_by_email(
             user_email=user.email, with_relations=True
         )
-        return user_with_relations
+        if user_with_relations is None:
+            raise UserDoesNotExists("User does not exist.")
+        return user
 
     async def change_profile(
         self, user: UserModel, profile_data: dict
@@ -228,15 +246,22 @@ class UserService:
         user_with_relations = await self.user_repository.get_by_email(
             user_email=user.email, with_relations=True
         )
+        if user_with_relations is None:
+            raise UserDoesNotExists("User does not exist.")
         for key, value in profile_data.items():
             setattr(user_with_relations.profile, key, value)
         await self.session.commit()
         return user_with_relations
 
-    async def get_all_users(self) -> list[UserModel]:
+    async def get_all_users(
+        self, limit: int = 10, offset: int = 0
+    ) -> tuple[Sequence[UserModel], int]:
         total_user = await self.user_repository.get_total_users()
 
-        users = await self.user_repository.get_all(limit=10, offset=0)
+        users = await self.user_repository.get_all(
+            limit=limit,
+            offset=offset,
+        )
         return users, int(total_user)
 
     async def change_group(self, user_id: int, group_name: str) -> UserModel:
@@ -246,7 +271,9 @@ class UserService:
         if user_model is None:
             raise UserDoesNotExists("User with this id does not exists.")
 
-        group = await self.group_repository.get_group_by_name(name=group_name)
+        group = await self.group_repository.get_group_by_name(
+            group_name=group_name
+        )
         if group is None:
             raise GroupDoesNotExist("Group with this name does not exists.")
 
