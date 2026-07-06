@@ -3,7 +3,7 @@ from datetime import datetime, timezone
 import jwt
 
 from core.config import settings
-from exceptions.auth import TokenExpired, TokenInvalid
+from exceptions.auth import InvalidToken, TokenAlreadyExpired
 
 
 class JWTService:
@@ -19,7 +19,7 @@ class JWTService:
     ) -> str:
         now = datetime.now(timezone.utc)
         to_encode = {
-            "sub": data.get("user_id"),
+            "sub": str(data["user_id"]),
             "type": "access",
             "iat": now,
             "exp": now + self._access_token_expire,
@@ -35,7 +35,7 @@ class JWTService:
     ):
         now = datetime.now(timezone.utc)
         to_encode = {
-            "sub": data.get("user_id"),
+            "sub": str(data["user_id"]),
             "type": "refresh",
             "iat": now,
             "exp": now + self._refresh_token_expire,
@@ -52,6 +52,6 @@ class JWTService:
             )
             return data
         except jwt.ExpiredSignatureError:
-            raise TokenExpired("This token has expired.") from None
+            raise TokenAlreadyExpired("This token has expired.") from None
         except jwt.PyJWTError:
-            raise TokenInvalid("This token is invalid.") from None
+            raise InvalidToken("This token is invalid.") from None
