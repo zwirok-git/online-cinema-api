@@ -17,8 +17,11 @@ from exceptions.movies import (
 from models.movies import Comment, LikeStatus, Movie
 from repositories.movies import MovieRepository
 from schemas.movies import (
+    CertificationSchema,
     CommentCreateSchema,
     CommentSchema,
+    DirectorSchema,
+    GenreSchema,
     GenreWithCountSchema,
     MovieCreateSchema,
     MovieDetailSchema,
@@ -28,14 +31,7 @@ from schemas.movies import (
     MovieUpdateSchema,
     PaginatedResponseSchema,
     SortOrder,
-)
-
-from schemas.movies import (
-    MovieDetailSchema,
-    CertificationSchema,
-    GenreSchema,
     StarSchema,
-    DirectorSchema,
 )
 
 

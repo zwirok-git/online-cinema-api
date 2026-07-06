@@ -1,8 +1,8 @@
 from .carts import Cart, CartItem
 from .movies import (
     Certification,
-    CommentLike,
     Comment,
+    CommentLike,
     Director,
     Favorite,
     Genre,
