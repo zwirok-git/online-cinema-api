@@ -23,7 +23,6 @@ class CheckoutSessionCreateSchema(BaseModel):
 
 
 class CheckoutSessionResponseSchema(BaseModel):
-    payment_id: int
     checkout_url: HttpUrl
 
 
