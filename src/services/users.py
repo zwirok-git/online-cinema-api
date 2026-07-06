@@ -3,6 +3,7 @@ from typing import Sequence
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
+from core.tasks import send_email_task
 from exceptions.auth import (
     GroupDoesNotExist,
     InvalidCredentials,
@@ -13,10 +14,12 @@ from exceptions.auth import (
     UserDoesNotExists,
     UserNotActivated,
 )
+from models import NotificationType
 from models.users import UserModel, UserProfileModel
 from repositories.users import GroupRepository, UserRepository
 from security.passwords import get_password_hash, verify_password
 from services.jwt_tokens import JWTService
+from services.notification_templates import get_subject, render_template
 from services.tokens import TokenService
 
 
@@ -74,9 +77,15 @@ class UserService:
             f"{settings.BASE_URL}/users/activate"
             f"?activation_token={activation_token.token}"
         )
-        print(activations_link)
 
-        # here send email
+        send_email_task.delay(
+            to=user.email,
+            subject=get_subject(notification_type=NotificationType.ACTIVATION),
+            html_body=render_template(
+                notification_type=NotificationType.ACTIVATION,
+                context={"activation_link": activations_link},
+            ),
+        )
 
         await self.session.commit()
         return user
@@ -104,9 +113,17 @@ class UserService:
             f"{settings.BASE_URL}/users/activate"
             f"?activation_token={activation_token.token}"
         )
-        print(activations_link)
 
-        # here send email
+        send_email_task.delay(
+            to=user.email,
+            subject=get_subject(
+                notification_type=NotificationType.RESEND_ACTIVATION
+            ),
+            html_body=render_template(
+                notification_type=NotificationType.RESEND_ACTIVATION,
+                context={"activation_link": activations_link},
+            ),
+        )
 
         await self.session.commit()
 
@@ -210,9 +227,17 @@ class UserService:
             f"{settings.BASE_URL}/users/reset/complete"
             f"?reset_token={reset_token.token}"
         )
-        print(reset_link)
 
-        # here send email
+        send_email_task.delay(
+            to=user.email,
+            subject=get_subject(
+                notification_type=NotificationType.RESEND_ACTIVATION
+            ),
+            html_body=render_template(
+                notification_type=NotificationType.RESEND_ACTIVATION,
+                context={"reset_link": reset_link},
+            ),
+        )
 
         await self.session.commit()
 
