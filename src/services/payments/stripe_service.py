@@ -1,3 +1,4 @@
+import contextlib
 from datetime import datetime
 from decimal import Decimal
 
@@ -5,6 +6,7 @@ import stripe
 from fastapi import HTTPException, status
 
 from core.config import settings
+from exceptions.orders import OrderNotFoundError, OrderNotPayableError
 from models import Payment
 from models.orders import OrderStatus
 from repositories.orders import OrderRepository
@@ -14,6 +16,7 @@ from services.exceptions import (
     OrderAccessDeniedException,
     OrderNotFoundException,
 )
+from services.orders import OrderService
 from services.payments.base_payment import IPaymentService
 
 
@@ -129,9 +132,9 @@ class StripePaymentService(IPaymentService):
                     payment.id, {"status": "paid"}
                 )
 
-            order = await self.order_repo.get_order_by_id(order_id)
-            if order:
-                await self.order_repo.update_status(order, OrderStatus.PAID)
+            # already paid or canceled meanwhile - don't fail the webhook
+            with contextlib.suppress(OrderNotFoundError, OrderNotPayableError):
+                await OrderService(repo=self.order_repo).mark_paid(order_id)
 
             # TODO Telegram or Celery
 
