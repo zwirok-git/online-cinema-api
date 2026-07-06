@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from exceptions.orders import (
     EmptyCartError,
     OrderNotCancelableError,
@@ -13,11 +15,8 @@ class OrderService:
     def __init__(self, repo: OrderRepository):
         self.repo = repo
 
-    async def create_order(
-        self, user_id: int, cart_movie_ids: list[int]
-    ) -> OrderCreateResponse:
-        # TODO: fetch ids via CartRepository once the carts PR merges;
-        #  for now the caller passes the user's cart contents.
+    async def create_order(self, user_id: int) -> OrderCreateResponse:
+        cart_movie_ids = await self.repo.get_cart_movie_ids(user_id)
         if not cart_movie_ids:
             raise EmptyCartError("Your cart is empty.")
 
@@ -35,10 +34,10 @@ class OrderService:
         payable: list[Movie] = []
         for movie in movies:
             if movie.id in purchased:
-                excluded.append(f"'{movie.name}' already purchased.")
+                excluded.append(f"'{movie.name}' — already purchased.")
             elif movie.id in pending:
                 excluded.append(
-                    f"'{movie.name}' already in another pending order."
+                    f"'{movie.name}' — already in another pending order."
                 )
             else:
                 payable.append(movie)
@@ -72,3 +71,17 @@ class OrderService:
         if order.status == OrderStatus.CANCELED:
             raise OrderNotCancelableError("This order is already canceled.")
         return await self.repo.update_status(order, OrderStatus.CANCELED)
+
+    async def get_all_orders(
+        self,
+        user_id: int | None = None,
+        status: OrderStatus | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+    ) -> list[Order]:
+        return await self.repo.get_all_orders(
+            user_id=user_id,
+            status=status,
+            date_from=date_from,
+            date_to=date_to,
+        )
