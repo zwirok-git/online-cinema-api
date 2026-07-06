@@ -12,18 +12,18 @@ from exceptions.auth import (
     UserNotActivated,
 )
 from models.users import UserGroupEnum, UserModel
+from repositories.movies import MovieRepository
 from repositories.orders import OrderRepository
 from repositories.payments import PaymentRepository
 from repositories.tokens import TokenRepository
 from repositories.users import GroupRepository, UserRepository
 from services.jwt_tokens import JWTService
+from services.movies import MovieService
 from services.orders import OrderService
 from services.payments import StripePaymentService
 from services.payments.base_payment import IPaymentService
 from services.tokens import TokenService
 from services.users import UserService
-from repositories.movies import MovieRepository
-from services.movies import MovieService
 
 
 http_bearer = HTTPBearer()

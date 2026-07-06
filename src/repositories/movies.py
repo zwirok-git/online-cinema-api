@@ -55,19 +55,27 @@ class MovieRepository:
         await self.session.delete(movie)
         await self.session.flush()
 
-    async def get_certification(self, certification_id: int) -> Certification | None:
+    async def get_certification(
+            self, certification_id: int
+    ) -> Certification | None:
         return await self.session.get(Certification, certification_id)
 
     async def get_genres_by_ids(self, ids: list[int]) -> Sequence[Genre]:
-        result = await self.session.execute(select(Genre).where(Genre.id.in_(ids)))
+        result = await self.session.execute(
+            select(Genre).where(Genre.id.in_(ids))
+        )
         return result.scalars().all()
 
     async def get_stars_by_ids(self, ids: list[int]) -> Sequence[Star]:
-        result = await self.session.execute(select(Star).where(Star.id.in_(ids)))
+        result = await self.session.execute(
+            select(Star).where(Star.id.in_(ids))
+        )
         return result.scalars().all()
 
     async def get_directors_by_ids(self, ids: list[int]) -> Sequence[Director]:
-        result = await self.session.execute(select(Director).where(Director.id.in_(ids)))
+        result = await self.session.execute(
+            select(Director).where(Director.id.in_(ids))
+        )
         return result.scalars().all()
 
     async def is_movie_purchased(self, movie_id: int) -> bool:

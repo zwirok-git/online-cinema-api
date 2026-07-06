@@ -1,9 +1,9 @@
 from fastapi import APIRouter
 
+from .admin.movies import router as admin_movies_router
 from .orders import router as orders_router
 from .payments import router as payments_router
 from .users import router as users_router
-from .admin.movies import router as admin_movies_router
 
 
 api_router = APIRouter()

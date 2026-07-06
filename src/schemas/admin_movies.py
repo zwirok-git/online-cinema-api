@@ -28,7 +28,9 @@ class AdminMovieUpdateSchema(BaseModel):
     meta_score: float | None = None
     gross: float | None = None
     description: str | None = None
-    price: Decimal | None = Field(default=None, max_digits=10, decimal_places=2)
+    price: Decimal | None = Field(
+        default=None, max_digits=10, decimal_places=2
+    )
     certification_id: int | None = None
     genre_ids: list[int] | None = None
     star_ids: list[int] | None = None

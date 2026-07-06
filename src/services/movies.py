@@ -18,7 +18,10 @@ class RelatedMovieDataError(Exception):
 
 
 class MovieService:
-    def __init__(self, session: AsyncSession, repository: MovieRepository) -> None:
+    def __init__(
+            self, session: AsyncSession,
+            repository: MovieRepository
+    ) -> None:
         self.session = session
         self.repository = repository
 
@@ -34,13 +37,17 @@ class MovieService:
         return movie
 
     async def create_movie(self, data: AdminMovieCreateSchema) -> Movie:
-        certification = await self.repository.get_certification(data.certification_id)
+        certification = await self.repository.get_certification(
+            data.certification_id
+        )
         if certification is None:
             raise RelatedMovieDataError("Certification does not exist.")
 
         genres = await self.repository.get_genres_by_ids(data.genre_ids)
         stars = await self.repository.get_stars_by_ids(data.star_ids)
-        directors = await self.repository.get_directors_by_ids(data.director_ids)
+        directors = await self.repository.get_directors_by_ids(
+            data.director_ids
+        )
 
         movie = Movie(
             name=data.name,
@@ -62,7 +69,9 @@ class MovieService:
         await self.session.commit()
         return movie
 
-    async def update_movie(self, movie_id: int, data: AdminMovieUpdateSchema) -> Movie:
+    async def update_movie(
+            self, movie_id: int, data: AdminMovieUpdateSchema
+    ) -> Movie:
         movie = await self.get_movie(movie_id)
         update_data = data.model_dump(exclude_unset=True)
 
@@ -72,7 +81,9 @@ class MovieService:
 
         certification_id = update_data.pop("certification_id", None)
         if certification_id is not None:
-            certification = await self.repository.get_certification(certification_id)
+            certification = await self.repository.get_certification(
+                certification_id
+            )
             if certification is None:
                 raise RelatedMovieDataError("Certification does not exist.")
             movie.certification = certification
@@ -81,9 +92,13 @@ class MovieService:
             setattr(movie, field, value)
 
         if genre_ids is not None:
-            movie.genres = list(await self.repository.get_genres_by_ids(genre_ids))
+            movie.genres = list(
+                await self.repository.get_genres_by_ids(genre_ids)
+            )
         if star_ids is not None:
-            movie.stars = list(await self.repository.get_stars_by_ids(star_ids))
+            movie.stars = list(
+                await self.repository.get_stars_by_ids(star_ids)
+            )
         if director_ids is not None:
             movie.directors = list(
                 await self.repository.get_directors_by_ids(director_ids)
