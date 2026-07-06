@@ -1,3 +1,5 @@
+from datetime import datetime
+
 from exceptions.orders import (
     EmptyCartError,
     OrderNotCancelableError,
@@ -69,3 +71,17 @@ class OrderService:
         if order.status == OrderStatus.CANCELED:
             raise OrderNotCancelableError("This order is already canceled.")
         return await self.repo.update_status(order, OrderStatus.CANCELED)
+
+    async def get_all_orders(
+        self,
+        user_id: int | None = None,
+        status: OrderStatus | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+    ) -> list[Order]:
+        return await self.repo.get_all_orders(
+            user_id=user_id,
+            status=status,
+            date_from=date_from,
+            date_to=date_to,
+        )
