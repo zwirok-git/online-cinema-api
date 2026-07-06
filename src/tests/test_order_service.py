@@ -1,6 +1,7 @@
 import pytest
 
 from exceptions.orders import EmptyCartError
+from models import Movie
 from services.orders import OrderService
 
 
@@ -34,3 +35,7 @@ async def test_create_order_with_empty_cart_is_refused():
 
     with pytest.raises(EmptyCartError):
         await service.create_order(user_id=1)
+
+
+async def test_purchased_movie_is_excluded_from_order():
+    pass

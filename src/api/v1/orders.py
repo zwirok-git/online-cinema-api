@@ -1,28 +1,19 @@
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
 
-from api.dependencies import get_current_user
-from core.database import get_db
+from api.dependencies import get_current_user, get_order_service
 from exceptions.orders import (
     EmptyCartError,
     OrderNotCancelableError,
     OrderNotFoundError,
 )
 from models.users import UserModel
-from repositories.orders import OrderRepository
 from schemas.orders import OrderCreateResponse, OrderResponse
 from services.orders import OrderService
 
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
-
-
-def get_order_service(
-    session: Annotated[AsyncSession, Depends(get_db)],
-) -> OrderService:
-    return OrderService(repo=OrderRepository(session))
 
 
 @router.post(

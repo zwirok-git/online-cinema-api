@@ -12,6 +12,7 @@ from models.users import UserGroupEnum, UserModel
 from repositories.orders import OrderRepository
 from repositories.payments import PaymentRepository
 from repositories.users import GroupRepository, UserRepository
+from services.orders import OrderService
 from services.payments import StripePaymentService
 from services.payments.base_payment import IPaymentService
 from services.users import UserService
@@ -89,3 +90,9 @@ async def get_current_admin(
         )
 
     return current_user
+
+
+async def get_order_service(
+    db_session: Annotated[AsyncSession, Depends(get_db)],
+) -> OrderService:
+    return OrderService(repo=OrderRepository(db_session))
