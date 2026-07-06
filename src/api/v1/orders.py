@@ -20,9 +20,9 @@ router = APIRouter(prefix="/orders", tags=["Orders"])
 
 
 def get_order_service(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    session: Annotated[AsyncSession, Depends(get_db)],
 ) -> OrderService:
-    return OrderService(repo=OrderRepository(db))
+    return OrderService(repo=OrderRepository(session))
 
 
 @router.post(
@@ -34,13 +34,12 @@ def get_order_service(
 async def create_order(
     user: Annotated[UserModel, Depends(get_current_user)],
     service: Annotated[OrderService, Depends(get_order_service)],
-    cart_movie_ids: list[int],  # TODO: remove once cart integration lands
 ):
     """Creates an order from the user's cart. Movies that are
     unavailable or already purchased are excluded and reported
     in `excluded_movies`."""
     try:
-        return await service.create_order(user.id, cart_movie_ids)
+        return await service.create_order(user.id)
     except EmptyCartError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
