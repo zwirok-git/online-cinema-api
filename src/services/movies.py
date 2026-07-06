@@ -1,6 +1,6 @@
 import math
 
-from sqlalchemy import func
+from sqlalchemy import func, select
 
 from exceptions.movies import (
     CertificationNotFoundError,
@@ -57,11 +57,8 @@ class MovieService:
         self, stmt, page: int, per_page: int
     ) -> PaginatedResponseSchema[MovieListItemSchema]:
         session = self.repo.session
-        count_stmt = (
-            stmt.order_by(None)
-            .with_only_columns(func.count())
-            .select_from(stmt.subquery())
-        )
+        subquery = stmt.order_by(None).subquery()
+        count_stmt = select(func.count()).select_from(subquery)
         total = (await session.execute(count_stmt)).scalar_one()
         rows = (
             (
@@ -112,7 +109,7 @@ class MovieService:
         movie = await self.repo.get_by_id_with_relations(movie_id)
 
         if movie is None:
-            raise MovieNotFoundError(f"Movie id={movie_id} didn't find.")
+            raise MovieNotFoundError(f"Movie id={movie_id} not found.")
 
         likes = await self.repo.count_likes(movie_id, LikeStatus.LIKE)
         dislikes = await self.repo.count_likes(movie_id, LikeStatus.DISLIKE)
@@ -169,9 +166,9 @@ class MovieService:
     async def update_movie(
         self, movie_id: int, payload: MovieUpdateSchema
     ) -> MovieDetailSchema:
-        movie = await self.repo.get_by_id(movie_id)
+        movie = await self.repo.get_by_id_with_relations(movie_id)
         if movie is None:
-            raise MovieNotFoundError(f"Movie id={movie_id} didn't find.")
+            raise MovieNotFoundError(f"Movie id={movie_id} not found.")
         data = payload.model_dump(
             exclude_unset=True,
             exclude={"genre_ids", "star_ids", "director_ids"},
@@ -196,7 +193,7 @@ class MovieService:
     async def delete_movie(self, movie_id: int) -> None:
         movie = await self.repo.get_by_id(movie_id)
         if movie is None:
-            raise MovieNotFoundError(f"Movie id={movie_id} didn't find.")
+            raise MovieNotFoundError(f"Movie id={movie_id} not found.")
         if await self.repo.has_purchases(movie_id):
             raise MovieHasPurchasesError(
                 f"Movie id={movie_id} already sold — deletion is prohibited."
@@ -214,7 +211,7 @@ class MovieService:
         self, genre_id: int, page: int, per_page: int
     ):
         if await self.repo.get_genre_by_id(genre_id) is None:
-            raise GenreNotFoundError(f"Genre id={genre_id} didn't find.")
+            raise GenreNotFoundError(f"Genre id={genre_id} not found.")
         return await self._paginate(
             self.repo.movies_by_genre_query(genre_id), page, per_page
         )
@@ -223,7 +220,7 @@ class MovieService:
         if await self.repo.get_favorite(movie_id, user_id) is not None:
             return
         if await self.repo.get_by_id(movie_id) is None:
-            raise MovieNotFoundError(f"Movie id={movie_id} didn't find.")
+            raise MovieNotFoundError(f"Movie id={movie_id} not found.")
         await self.repo.add_favorite(movie_id, user_id)
 
     async def remove_from_favorites(self, movie_id: int, user_id: int) -> None:
@@ -275,14 +272,14 @@ class MovieService:
         self, movie_id: int, user_id: int, status_: LikeStatus
     ) -> None:
         if await self.repo.get_by_id(movie_id) is None:
-            raise MovieNotFoundError(f"Movie id={movie_id} didn't find.")
+            raise MovieNotFoundError(f"Movie id={movie_id} not found.")
         await self.repo.upsert_movie_like(movie_id, user_id, status_)
 
     async def rate_movie(
         self, movie_id: int, user_id: int, rating: int
     ) -> None:
         if await self.repo.get_by_id(movie_id) is None:
-            raise MovieNotFoundError(f"Movie id={movie_id} didn't find.")
+            raise MovieNotFoundError(f"Movie id={movie_id} not found.")
         await self.repo.upsert_rating(movie_id, user_id, rating)
 
     def _to_comment_schema(self, comment: Comment) -> CommentSchema:
@@ -309,7 +306,7 @@ class MovieService:
             parent = await self.repo.get_comment(payload.parent_id)
             if parent is None:
                 raise CommentNotFoundError(
-                    f"Parental comment id={payload.parent_id} didn't find."
+                    f"Parent comment id={payload.parent_id} not found."
                 )
         comment = Comment(
             movie_id=movie_id,
@@ -325,7 +322,7 @@ class MovieService:
     async def like_comment(self, comment_id: int, user_id: int) -> None:
         comment = await self.repo.get_comment(comment_id)
         if comment is None:
-            raise CommentNotFoundError(f"Comment id={comment_id} didn't find.")
+            raise CommentNotFoundError(f"Comment id={comment_id} not found.")
         if await self.repo.get_comment_like(comment_id, user_id) is not None:
             return
         self.repo.add_comment_like(comment_id, user_id)
@@ -345,7 +342,9 @@ class MovieService:
     async def update_dictionary_item(self, model, item_id: int, name: str):
         item = await self.repo.get_dictionary_item(model, item_id)
         if item is None:
-            raise MovieNotFoundError(f"Movie id={item_id} didn't find.")
+            exc_cls = _NOT_FOUND_BY_TABLE.get(model.__tablename__, MovieNotFoundError)
+            entity = _ENTITY_LABELS.get(model.__tablename__, model.__tablename__)
+            raise exc_cls(f"{entity} id={item_id} not found.")
         if not await self.repo.update_dictionary_item(item, name):
             entity = _ENTITY_LABELS.get(
                 model.__tablename__, model.__tablename__
@@ -358,5 +357,7 @@ class MovieService:
     async def delete_dictionary_item(self, model, item_id: int) -> None:
         item = await self.repo.get_dictionary_item(model, item_id)
         if item is None:
-            raise MovieNotFoundError(f"Movie id={item_id} didn't find.")
+            exc_cls = _NOT_FOUND_BY_TABLE.get(model.__tablename__, MovieNotFoundError)
+            entity = _ENTITY_LABELS.get(model.__tablename__, model.__tablename__)
+            raise exc_cls(f"{entity} id={item_id} not found.")
         await self.repo.delete_dictionary_item(item)
