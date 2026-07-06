@@ -19,6 +19,7 @@ from core.database import Base
 
 
 if TYPE_CHECKING:
+    from models import Cart
     from models.tokens import (
         ActivationTokenModel,
         PasswordResetTokenModel,
@@ -101,6 +102,10 @@ class UserModel(Base):
 
     profile: Mapped[Optional["UserProfileModel"]] = relationship(
         "UserProfileModel", back_populates="user", cascade="all, delete-orphan"
+    )
+
+    cart: Mapped[Optional["Cart"]] = relationship(
+        "Cart", back_populates="user", cascade="all, delete-orphan"
     )
 
 
