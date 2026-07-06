@@ -22,6 +22,8 @@ from services.payments import StripePaymentService
 from services.payments.base_payment import IPaymentService
 from services.tokens import TokenService
 from services.users import UserService
+from repositories.movies import MovieRepository
+from services.movies import MovieService
 
 
 http_bearer = HTTPBearer()
@@ -129,3 +131,12 @@ async def get_order_service(
     db_session: Annotated[AsyncSession, Depends(get_db)],
 ) -> OrderService:
     return OrderService(repo=OrderRepository(db_session))
+
+
+async def get_movie_service(
+    db_session: Annotated[AsyncSession, Depends(get_db)],
+) -> MovieService:
+    return MovieService(
+        session=db_session,
+        repository=MovieRepository(db_session),
+    )
