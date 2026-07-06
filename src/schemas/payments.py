@@ -48,7 +48,13 @@ class UserPaymentHistorySchema(BaseModel):
 
     id: int
     order_id: int
-    amount: Decimal
+    amount: Decimal = Field(
+        ...,
+        description="Payment amount",
+        examples=[Decimal("99.99")],
+        max_digits=10,
+        decimal_places=2,
+    )
     status: str
     external_payment_id: str | None
     created_at: datetime

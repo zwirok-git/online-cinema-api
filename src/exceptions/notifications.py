@@ -1,4 +1,4 @@
-from services.exceptions import BusinessException
+from exceptions.payments import BusinessException
 
 
 class NotificationNotFoundException(BusinessException):
