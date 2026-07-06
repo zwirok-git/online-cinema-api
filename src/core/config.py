@@ -43,11 +43,5 @@ class Settings(BaseSettings):
     CELERY_BROKER_URL: str = "redis://redis:6379/0"
     CELERY_RESULT_BACKEND: str = "redis://redis:6379/0"
 
-    MINIO_ENDPOINT_URL: str = "http://minio:9000"
-    MINIO_ACCESS_KEY: str = "minioadmin"
-    MINIO_SECRET_KEY: str = "minioadmin123"
-    MINIO_BUCKET_NAME: str = "avatars"
-    MINIO_PUBLIC_URL: str = "http://minio:9000/avatars"
-
 
 settings = Settings()
