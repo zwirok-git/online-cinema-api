@@ -84,9 +84,7 @@ class NotificationRepository:
     async def delete_older_than(self, days: int) -> int:
         cutoff = datetime.now(timezone.utc) - timedelta(days=days)
         result = await self.session.execute(
-            delete(NotificationLog).where(
-                NotificationLog.created_at < cutoff
-            )
+            delete(NotificationLog).where(NotificationLog.created_at < cutoff)
         )
         rowcount = getattr(result, "rowcount", None)
         if isinstance(rowcount, int):
