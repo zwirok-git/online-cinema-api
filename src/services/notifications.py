@@ -1,9 +1,10 @@
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from exceptions.notifications import NotificationNotFoundException
 from models import NotificationLog, NotificationType
 from repositories.notifications import NotificationRepository
 from services.email import send_email
 from services.notification_templates import get_subject, render_template
-from sqlalchemy.ext.asyncio import AsyncSession
 
 
 class NotificationService:

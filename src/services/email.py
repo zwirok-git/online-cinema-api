@@ -14,7 +14,9 @@ async def send_email(to: str, subject: str, html_body: str) -> None:
     message.attach(MIMEText(html_body, "html", "utf-8"))
 
     try:
-        server = smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10)
+        server = smtplib.SMTP(
+            settings.SMTP_HOST, settings.SMTP_PORT, timeout=10
+        )
         if settings.SMTP_USE_TLS:
             server.starttls()
         if settings.SMTP_USER and settings.SMTP_PASSWORD:

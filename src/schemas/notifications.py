@@ -1,7 +1,8 @@
 from typing import Annotated, Literal, Union
 
-from models import NotificationStatus, NotificationType
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
+
+from models import NotificationStatus, NotificationType
 
 
 class ActivationContextSchema(BaseModel):

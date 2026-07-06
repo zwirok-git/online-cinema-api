@@ -1,8 +1,9 @@
 from datetime import datetime, timedelta, timezone
 
-from models import NotificationLog, NotificationStatus, NotificationType
 from sqlalchemy import delete, select
 from sqlalchemy.ext.asyncio import AsyncSession
+
+from models import NotificationLog, NotificationStatus, NotificationType
 
 
 class NotificationRepository:
@@ -83,6 +84,11 @@ class NotificationRepository:
     async def delete_older_than(self, days: int) -> int:
         cutoff = datetime.now(timezone.utc) - timedelta(days=days)
         result = await self.session.execute(
-            delete(NotificationLog).where(NotificationLog.created_at < cutoff)
+            delete(NotificationLog).where(
+                NotificationLog.created_at < cutoff
+            )
         )
-        return result.rowcount if result.rowcount is not None else 0
+        rowcount = getattr(result, "rowcount", None)
+        if isinstance(rowcount, int):
+            return rowcount
+        return 0

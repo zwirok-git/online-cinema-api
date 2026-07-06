@@ -14,7 +14,11 @@ from .movies import (
     MovieStar,
     Star,
 )
-from .notifications import NotificationLog, NotificationStatus, NotificationType
+from .notifications import (
+    NotificationLog,
+    NotificationStatus,
+    NotificationType,
+)
 from .orders import Order, OrderItem
 from .payments import Payment, PaymentItem, PaymentStatus
 from .tokens import (
