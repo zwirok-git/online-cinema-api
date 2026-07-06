@@ -365,8 +365,7 @@ class MovieService:
                 model.__tablename__, MovieNotFoundError
             )
             entity = _ENTITY_LABELS.get(
-                model.__tablename__,
-                model.__tablename__
+                model.__tablename__, model.__tablename__
             )
             raise exc_cls(f"{entity} id={item_id} not found.")
         await self.repo.delete_dictionary_item(item)
