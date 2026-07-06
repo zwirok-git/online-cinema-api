@@ -5,7 +5,12 @@ from fastapi.security import HTTPBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
-from exceptions.auth import TokenExceptions, UserExceptions
+from exceptions.auth import (
+    InvalidToken,
+    TokenExceptions,
+    UserExceptions,
+    UserNotActivated,
+)
 from models.users import UserGroupEnum, UserModel
 from repositories.orders import OrderRepository
 from repositories.payments import PaymentRepository
@@ -32,23 +37,28 @@ async def get_payment_service(
     )
 
 
-async def get_user_service(
-    db_session: Annotated[AsyncSession, Depends(get_db)],
-) -> UserService:
-    return UserService(
-        user_repository=UserRepository(db_session),
-        group_repository=GroupRepository(db_session),
-    )
-
-
 async def get_token_service(
     db_session: Annotated[AsyncSession, Depends(get_db)],
-):
+) -> TokenService:
     return TokenService(TokenRepository(session=db_session))
 
 
 async def get_jwt_service():
     return JWTService()
+
+
+async def get_user_service(
+    db_session: Annotated[AsyncSession, Depends(get_db)],
+    token_service: Annotated[TokenService, Depends(get_token_service)],
+    jwt_service: Annotated[JWTService, Depends(get_jwt_service)],
+) -> UserService:
+    return UserService(
+        session=db_session,
+        user_repository=UserRepository(db_session),
+        group_repository=GroupRepository(db_session),
+        token_service=token_service,
+        jwt_service=jwt_service,
+    )
 
 
 async def get_current_user(
@@ -57,27 +67,32 @@ async def get_current_user(
     jwt_service: Annotated[JWTService, Depends(get_jwt_service)],
 ) -> UserModel:
     access_token = token.credentials
+    exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
     try:
         payload = jwt_service.decode_token(access_token)
-        user_id = int(payload.get("sub"))
-        user = await user_service.get_user_by_id(user_id=user_id)
-    except (TokenExceptions, UserExceptions) as error:
-        raise HTTPException(
-            status_code=status.HTTP_401_UNAUTHORIZED,
-            detail=str(error),
-            headers={"WWW-Authenticate": "Bearer"},
-        ) from error
+        if payload.get("type") != "access":
+            raise InvalidToken("Access token is invalid.")
 
-    if not user.is_active:
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="User is inactive.",
+        user_id = int(payload.get("sub"))
+        user = await user_service.get_user_by_id(
+            user_id=user_id, with_relations=True
         )
+    except (TokenExceptions, UserExceptions):
+        raise exception from None
+
+    if user is None:
+        raise exception
+    if not user.is_active:
+        raise UserNotActivated("Account exists but is not activated yet.")
     return user
 
 
 async def get_current_admin(
-    current_user: UserModel = Depends(get_current_user),
+    current_user: Annotated[UserModel, Depends(get_current_user)],
 ) -> UserModel:
     if not current_user.group or current_user.group.name not in (
         UserGroupEnum.ADMIN,
@@ -89,3 +104,16 @@ async def get_current_admin(
         )
 
     return current_user
+
+
+async def get_current_only_admin(
+    current_user: UserModel = Depends(get_current_user),
+) -> UserModel:
+    if (
+        not current_user.group
+        or current_user.group.name != UserGroupEnum.ADMIN
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. Only for admins.",
+        )
