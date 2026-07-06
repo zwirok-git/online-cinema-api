@@ -19,7 +19,7 @@ from core.database import Base
 
 
 if TYPE_CHECKING:
-    from models.carts import Cart
+    from models import Cart
     from models.tokens import (
         ActivationTokenModel,
         PasswordResetTokenModel,

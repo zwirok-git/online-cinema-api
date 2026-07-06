@@ -1,3 +1,5 @@
+from datetime import timedelta
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -23,6 +25,11 @@ class Settings(BaseSettings):
     STRIPE_SECRET_KEY: str = "sk_test_placeholder"
     STRIPE_WEBHOOK_SECRET: str | None = None
     BASE_URL: str = "http://localhost:8000"
+
+    TOKEN_SECRET_KEY: str = "UuNi2QtnGzRdGIJmsRURVuQFthrwsr1EZu8fOomLQTZ"
+    TOKEN_ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE: timedelta = timedelta(days=1)
+    REFRESH_TOKEN_EXPIRE: timedelta = timedelta(days=30)
 
     API_V1_PREFIX: str = "/api/v1"
 
