@@ -1,18 +1,7 @@
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
-from exceptions.auth import (
-    GroupDoesNotExist,
-    InvalidCredentials,
-    InvalidOldPassword,
-    InvalidToken,
-    TokenAlreadyExpired,
-    TokenDoesNotExists,
-    UserAlreadyExists,
-    UserDoesNotExists,
-    UserNotActivated,
-)
-from services.exceptions import (
+from exceptions.payments import (
     InvalidOrderStatusException,
     OrderAccessDeniedException,
     OrderNotFoundException,
