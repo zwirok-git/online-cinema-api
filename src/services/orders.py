@@ -1,14 +1,20 @@
-from datetime import datetime
+import contextlib
+from datetime import datetime, timezone
 
+from exceptions.notifications import EmailDeliveryException
 from exceptions.orders import (
     EmptyCartError,
     OrderNotCancelableError,
     OrderNotFoundError,
+    OrderNotPayableError,
 )
 from models.movies import Movie
+from models.notifications import NotificationType
 from models.orders import Order, OrderStatus
 from repositories.orders import OrderRepository
 from schemas.orders import OrderCreateResponse
+from services.email import send_email
+from services.notification_templates import get_subject, render_template
 
 
 class OrderService:
@@ -85,3 +91,42 @@ class OrderService:
             date_from=date_from,
             date_to=date_to,
         )
+
+    async def mark_paid(self, order_id: int) -> Order:
+        order = await self.repo.get_order_by_id(order_id)
+        if order is None:
+            raise OrderNotFoundError(f"Order {order_id} not found.")
+        if order.status != OrderStatus.PENDING:
+            raise OrderNotPayableError(
+                f"Cannot mark {order.status} order as paid."
+            )
+
+        order = await self.repo.update_status(order, OrderStatus.PAID)
+
+        email = await self.repo.get_user_email(order.user_id)
+        if email:
+            total = order.total_amount or sum(
+                item.price_at_order for item in order.items
+            )
+            context = {
+                "order_id": order.id,
+                "movie_titles": [item.movie.name for item in order.items],
+                "total_amount": total,
+                "payment_date": datetime.now(timezone.utc).strftime(
+                    "%Y-%m-%d %H:%M UTC"
+                ),
+            }
+            # payment already succeeded; email is best-effort
+            with contextlib.suppress(EmailDeliveryException):
+                await send_email(
+                    to=email,
+                    subject=get_subject(
+                        NotificationType.ORDER_PAYMENT_CONFIRMATION
+                    ),
+                    html_body=render_template(
+                        NotificationType.ORDER_PAYMENT_CONFIRMATION,
+                        context,
+                    ),
+                )
+
+        return order
