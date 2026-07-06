@@ -340,8 +340,8 @@ async def me_patch(
 async def list_users(
     user_service: Annotated[UserService, Depends(get_user_service)],
     current_admin: Annotated[UserModel, Depends(get_current_only_admin)],
-    limit: Annotated[int, Query(10, gt=0, le=20)],
-    offset: Annotated[int, Query(0, ge=0)],
+    limit: Annotated[int, Query(gt=0, le=20)] = 10,
+    offset: Annotated[int, Query(ge=0)] = 0,
 ):
     users_models, total_users = await user_service.get_all_users(
         limit=limit,
