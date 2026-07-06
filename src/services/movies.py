@@ -110,11 +110,14 @@ class MovieService:
 
     async def get_detail(self, movie_id: int) -> MovieDetailSchema:
         movie = await self.repo.get_by_id_with_relations(movie_id)
+
         if movie is None:
             raise MovieNotFoundError(f"Movie id={movie_id} didn't find.")
+
         likes = await self.repo.count_likes(movie_id, LikeStatus.LIKE)
         dislikes = await self.repo.count_likes(movie_id, LikeStatus.DISLIKE)
         avg = await self.repo.average_rating(movie_id)
+
         return MovieDetailSchema(
             id=movie.id,
             uuid=movie.uuid,
@@ -130,10 +133,13 @@ class MovieService:
             certification=CertificationSchema.model_validate(
                 movie.certification
             ),
-            genres=[GenreSchema.model_validate(g) for g in movie.genres],
-            stars=[StarSchema.model_validate(s) for s in movie.stars],
+            genres=[
+                GenreSchema.model_validate(genre) for genre in movie.genres
+            ],
+            stars=[StarSchema.model_validate(star) for star in movie.stars],
             directors=[
-                DirectorSchema.model_validate(d) for d in movie.directors
+                DirectorSchema.model_validate(director)
+                for director in movie.directors
             ],
             likes_count=likes,
             dislikes_count=dislikes,
@@ -339,7 +345,7 @@ class MovieService:
     async def update_dictionary_item(self, model, item_id: int, name: str):
         item = await self.repo.get_dictionary_item(model, item_id)
         if item is None:
-            raise MovieNotFoundError("Movie not found")
+            raise MovieNotFoundError(f"Movie id={item_id} didn't find.")
         if not await self.repo.update_dictionary_item(item, name):
             entity = _ENTITY_LABELS.get(
                 model.__tablename__, model.__tablename__
@@ -352,5 +358,5 @@ class MovieService:
     async def delete_dictionary_item(self, model, item_id: int) -> None:
         item = await self.repo.get_dictionary_item(model, item_id)
         if item is None:
-            raise MovieNotFoundError("Movie not found")
+            raise MovieNotFoundError(f"Movie id={item_id} didn't find.")
         await self.repo.delete_dictionary_item(item)
