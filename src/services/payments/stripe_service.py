@@ -1,4 +1,3 @@
-import contextlib
 from datetime import datetime
 from decimal import Decimal
 
@@ -6,17 +5,16 @@ import stripe
 from fastapi import HTTPException, status
 
 from core.config import settings
+from exceptions.payments import (
+    InvalidOrderStatusException,
+    OrderAccessDeniedException,
+    OrderNotFoundException,
+)
 from exceptions.orders import OrderNotFoundError, OrderNotPayableError
 from models import Payment
 from models.orders import OrderStatus
 from repositories.orders import OrderRepository
 from repositories.payments import PaymentRepository
-from services.exceptions import (
-    InvalidOrderStatusException,
-    OrderAccessDeniedException,
-    OrderNotFoundException,
-)
-from services.orders import OrderService
 from services.payments.base_payment import IPaymentService
 
 
