@@ -17,13 +17,13 @@ from api.dependencies import (
     get_current_user,
     get_payment_service,
 )
+from exceptions.payments import InvalidOrderStatusException
 from models import UserModel
 from schemas.payments import (
     CheckoutSessionCreateSchema,
     CheckoutSessionResponseSchema,
     UserPaymentHistorySchema,
 )
-from services.exceptions import InvalidOrderStatusException
 from services.payments.base_payment import IPaymentService
 
 
