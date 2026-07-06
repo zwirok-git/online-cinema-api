@@ -22,8 +22,7 @@ class Base(DeclarativeBase):
     pass
 
 
-'''Це потім я приберу. Нагадування додати форід кі там де юзер айді'''
-
+"""Це потім я приберу. Нагадування додати форід кі там де юзер айді"""
 
 
 class GenreModel(Base):
@@ -124,8 +123,7 @@ class MovieModel(Base):
     gross: Mapped[float | None] = mapped_column(nullable=True)
     description: Mapped[str] = mapped_column(Text, nullable=False)
     price: Mapped[Decimal | None] = mapped_column(
-        DECIMAL(10, 2),
-        nullable=True
+        DECIMAL(10, 2), nullable=True
     )
 
     certification_id: Mapped[int] = mapped_column(
@@ -251,7 +249,7 @@ class CommentLikeModel(Base):
     comment_id: Mapped[int] = mapped_column(
         ForeignKey("comments.id", ondelete="CASCADE"), nullable=False
     )
-    user_id: Mapped[int] = mapped_column(nullable=False) # Тута фор кі
+    user_id: Mapped[int] = mapped_column(nullable=False)  # Тута фор кі
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
 
     comment: Mapped["CommentModel"] = relationship(back_populates="likes")

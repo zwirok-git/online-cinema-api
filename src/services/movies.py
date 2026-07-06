@@ -30,6 +30,14 @@ from schemas.movies import (
     SortOrder,
 )
 
+from schemas.movies import (
+    MovieDetailSchema,
+    CertificationSchema,
+    GenreSchema,
+    StarSchema,
+    DirectorSchema,
+)
+
 
 _ENTITY_LABELS = {
     "genres": "Genre",
@@ -52,16 +60,16 @@ class MovieService:
     async def _paginate(
         self, stmt, page: int, per_page: int
     ) -> PaginatedResponseSchema[MovieListItemSchema]:
-        db = self.repo.db
+        session = self.repo.session
         count_stmt = (
             stmt.order_by(None)
             .with_only_columns(func.count())
             .select_from(stmt.subquery())
         )
-        total = (await db.execute(count_stmt)).scalar_one()
+        total = (await session.execute(count_stmt)).scalar_one()
         rows = (
             (
-                await db.execute(
+                await session.execute(
                     stmt.offset((page - 1) * per_page).limit(per_page)
                 )
             )
@@ -123,10 +131,14 @@ class MovieService:
             gross=movie.gross,
             description=movie.description,
             price=movie.price,
-            certification=movie.CertificationSchema,
-            genres=movie.genres,
-            stars=movie.stars,
-            directors=movie.directors,
+            certification=CertificationSchema.model_validate(
+                movie.certification
+            ),
+            genres=[GenreSchema.model_validate(g) for g in movie.genres],
+            stars=[StarSchema.model_validate(s) for s in movie.stars],
+            directors=[
+                DirectorSchema.model_validate(d) for d in movie.directors
+            ],
             likes_count=likes,
             dislikes_count=dislikes,
             average_rating=round(avg, 2) if avg is not None else None,
@@ -304,8 +316,6 @@ class MovieService:
             text=payload.text,
         )
         await self.repo.create_comment(comment)
-        if parent is not None and parent.user_id != user_id:
-            self.repo.add_notification(parent.user_id, user_id, comment.id)
         await self.repo.commit()
         await self.repo.refresh_comment(comment)
         return self._to_comment_schema(comment)
@@ -317,8 +327,6 @@ class MovieService:
         if await self.repo.get_comment_like(comment_id, user_id) is not None:
             return
         self.repo.add_comment_like(comment_id, user_id)
-        if comment.user_id != user_id:
-            self.repo.add_notification(comment.user_id, user_id, comment_id)
         await self.repo.commit()
 
     async def create_dictionary_item(self, model, name: str):
@@ -335,7 +343,7 @@ class MovieService:
     async def update_dictionary_item(self, model, item_id: int, name: str):
         item = await self.repo.get_dictionary_item(model, item_id)
         if item is None:
-            raise self._not_found_error(model, item_id)
+            raise MovieNotFoundError("Movie not found")
         if not await self.repo.update_dictionary_item(item, name):
             entity = _ENTITY_LABELS.get(
                 model.__tablename__, model.__tablename__
@@ -348,5 +356,5 @@ class MovieService:
     async def delete_dictionary_item(self, model, item_id: int) -> None:
         item = await self.repo.get_dictionary_item(model, item_id)
         if item is None:
-            raise self._not_found_error(model, item_id)
+            raise MovieNotFoundError("Movie not found")
         await self.repo.delete_dictionary_item(item)

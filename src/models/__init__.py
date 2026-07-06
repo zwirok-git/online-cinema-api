@@ -1,16 +1,16 @@
 from .carts import Cart, CartItem
 from .movies import (
     Certification,
-    CommentLikeModel,
-    CommentModel,
+    CommentLike,
+    Comment,
     Director,
-    FavoriteModel,
+    Favorite,
     Genre,
     Movie,
     MovieDirector,
     MovieGenre,
-    MovieLikeModel,
-    MovieRatingModel,
+    MovieLike,
+    MovieRating,
     MovieStar,
     Star,
 )
