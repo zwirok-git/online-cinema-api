@@ -1,12 +1,23 @@
 from celery import Celery
+from celery.schedules import crontab
+
+from core.config import settings
 
 
 celery = Celery(
     "online_cinema",
-    broker="redis://redis:6379/0",
-    backend="redis://redis:6379/0",
+    broker=settings.CELERY_BROKER_URL,
+    backend=settings.CELERY_RESULT_BACKEND,
+    include=["core.tasks"],
 )
 
 celery.conf.task_serializer = "json"
 celery.conf.result_serializer = "json"
 celery.conf.accept_content = ["json"]
+celery.conf.timezone = "UTC"
+celery.conf.beat_schedule = {
+    "cleanup_expired_tokens": {
+        "task": "delete_expired_tokens",
+        "schedule": crontab(minute=0, hour=0),
+    }
+}
