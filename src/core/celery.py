@@ -8,7 +8,7 @@ celery = Celery(
     "online_cinema",
     broker=settings.CELERY_BROKER_URL,
     backend=settings.CELERY_RESULT_BACKEND,
-    include=["core.tasks"],
+    include=["tasks.tokens", "tasks.send_email"],
 )
 
 celery.conf.task_serializer = "json"
