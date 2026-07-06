@@ -106,7 +106,7 @@ class TokenRepository:
         stmt = select(RefreshTokenModel).where(
             RefreshTokenModel.token == token_value
         )
-        result = self.session.execute(stmt)
+        result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
     async def get_refresh_token_by_user_id(
@@ -118,8 +118,8 @@ class TokenRepository:
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def delete_refresh_token(self, token_value: str) -> None:
-        await self.session.delete(token_value)
+    async def delete_refresh_token(self, token: RefreshTokenModel) -> None:
+        await self.session.delete(token)
         await self.session.flush()
 
     async def delete_expired_refresh_tokens(self, now: datetime) -> None:
