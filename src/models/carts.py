@@ -60,4 +60,4 @@ class CartItem(Base):
     )
 
     cart: Mapped["Cart"] = relationship("Cart", back_populates="items")
-    movie: Mapped["Movie"] = relationship("Movie")
+    movie: Mapped["Movie"] = relationship("Movie", lazy="selectin")
