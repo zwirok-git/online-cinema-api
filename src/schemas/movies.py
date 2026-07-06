@@ -6,7 +6,7 @@ from typing import Generic, TypeVar
 
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from src.models.movies import LikeStatus
+from models.movies import LikeStatus
 
 
 class GenreSchema(BaseModel):

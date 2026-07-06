@@ -15,8 +15,8 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from src.core.database import Base
-from src.models.users import UserModel
+from core.database import Base
+from models.users import UserModel
 
 
 class Genre(Base):

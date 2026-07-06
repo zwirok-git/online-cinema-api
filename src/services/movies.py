@@ -2,7 +2,7 @@ import math
 
 from sqlalchemy import func
 
-from src.exceptions.movies import (
+from exceptions.movies import (
     CertificationNotFoundError,
     CommentNotFoundError,
     DictionaryItemAlreadyExistsError,
@@ -14,9 +14,9 @@ from src.exceptions.movies import (
     MovieNotFoundError,
     StarNotFoundError,
 )
-from src.models.movies import Comment, LikeStatus, Movie
-from src.repositories.movies import MovieRepository
-from src.schemas.movies import (
+from models.movies import Comment, LikeStatus, Movie
+from repositories.movies import MovieRepository
+from schemas.movies import (
     CommentCreateSchema,
     CommentSchema,
     GenreWithCountSchema,
@@ -123,7 +123,7 @@ class MovieService:
             gross=movie.gross,
             description=movie.description,
             price=movie.price,
-            certification=movie.certification,
+            certification=movie.CertificationSchema,
             genres=movie.genres,
             stars=movie.stars,
             directors=movie.directors,
