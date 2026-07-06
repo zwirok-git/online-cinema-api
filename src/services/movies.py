@@ -342,8 +342,12 @@ class MovieService:
     async def update_dictionary_item(self, model, item_id: int, name: str):
         item = await self.repo.get_dictionary_item(model, item_id)
         if item is None:
-            exc_cls = _NOT_FOUND_BY_TABLE.get(model.__tablename__, MovieNotFoundError)
-            entity = _ENTITY_LABELS.get(model.__tablename__, model.__tablename__)
+            exc_cls = _NOT_FOUND_BY_TABLE.get(
+                model.__tablename__, MovieNotFoundError
+            )
+            entity = _ENTITY_LABELS.get(
+                model.__tablename__, model.__tablename__
+            )
             raise exc_cls(f"{entity} id={item_id} not found.")
         if not await self.repo.update_dictionary_item(item, name):
             entity = _ENTITY_LABELS.get(
@@ -357,7 +361,12 @@ class MovieService:
     async def delete_dictionary_item(self, model, item_id: int) -> None:
         item = await self.repo.get_dictionary_item(model, item_id)
         if item is None:
-            exc_cls = _NOT_FOUND_BY_TABLE.get(model.__tablename__, MovieNotFoundError)
-            entity = _ENTITY_LABELS.get(model.__tablename__, model.__tablename__)
+            exc_cls = _NOT_FOUND_BY_TABLE.get(
+                model.__tablename__, MovieNotFoundError
+            )
+            entity = _ENTITY_LABELS.get(
+                model.__tablename__,
+                model.__tablename__
+            )
             raise exc_cls(f"{entity} id={item_id} not found.")
         await self.repo.delete_dictionary_item(item)
