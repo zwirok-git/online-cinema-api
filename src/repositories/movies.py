@@ -56,7 +56,7 @@ class MovieRepository:
         await self.session.flush()
 
     async def get_certification(
-            self, certification_id: int
+        self, certification_id: int
     ) -> Certification | None:
         return await self.session.get(Certification, certification_id)
 

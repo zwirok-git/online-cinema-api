@@ -19,8 +19,7 @@ class RelatedMovieDataError(Exception):
 
 class MovieService:
     def __init__(
-            self, session: AsyncSession,
-            repository: MovieRepository
+        self, session: AsyncSession, repository: MovieRepository
     ) -> None:
         self.session = session
         self.repository = repository
@@ -70,7 +69,7 @@ class MovieService:
         return movie
 
     async def update_movie(
-            self, movie_id: int, data: AdminMovieUpdateSchema
+        self, movie_id: int, data: AdminMovieUpdateSchema
     ) -> Movie:
         movie = await self.get_movie(movie_id)
         update_data = data.model_dump(exclude_unset=True)
