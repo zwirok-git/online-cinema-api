@@ -18,6 +18,6 @@ celery.conf.timezone = "UTC"
 celery.conf.beat_schedule = {
     "cleanup_expired_tokens": {
         "task": "delete_expired_tokens",
-        "schedule": crontab(minute=0, hour=0),
+        "schedule": crontab(minute="0", hour="0"),
     }
 }
