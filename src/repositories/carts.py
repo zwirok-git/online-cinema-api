@@ -38,9 +38,7 @@ class CartRepository:
             return cart
         return await self.create_cart(user_id)
 
-    async def get_item(
-        self, cart_id: int, movie_id: int
-    ) -> CartItem | None:
+    async def get_item(self, cart_id: int, movie_id: int) -> CartItem | None:
         result = await self.db.execute(
             select(CartItem).where(
                 CartItem.cart_id == cart_id,
@@ -72,9 +70,7 @@ class CartRepository:
             await self.db.delete(item)
         await self.db.commit()
 
-    async def get_all_carts(
-        self, limit: int, offset: int
-    ) -> list[Cart]:
+    async def get_all_carts(self, limit: int, offset: int) -> list[Cart]:
         result = await self.db.execute(
             select(Cart)
             .limit(limit)
