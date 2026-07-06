@@ -40,7 +40,7 @@ dev = [
     "pytest-cov (>=7.1.0,<8.0.0)",
     "aiosqlite (>=0.22.1,<0.23.0)",
     "mypy>=2.1.0",
-    "pytest-asyncio>=1.4.0",
+    "pytest-asyncio>=0.26.0",
 ]
 
 
@@ -78,4 +78,3 @@ mypy_path = "src"
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
-asyncio_mode = "auto"

@@ -14,6 +14,11 @@ from .movies import (
     MovieStar,
     Star,
 )
+from .notifications import (
+    NotificationLog,
+    NotificationStatus,
+    NotificationType,
+)
 from .orders import Order, OrderItem
 from .payments import Payment, PaymentItem, PaymentStatus
 from .tokens import (
@@ -25,6 +30,9 @@ from .users import UserGroupModel, UserModel, UserProfileModel
 
 
 __all__ = [
+    "NotificationLog",
+    "NotificationStatus",
+    "NotificationType",
     "Payment",
     "PaymentItem",
     "PaymentStatus",
