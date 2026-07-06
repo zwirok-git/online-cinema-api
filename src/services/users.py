@@ -3,7 +3,6 @@ from typing import Sequence
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
-from core.tasks import send_email_task
 from exceptions.auth import (
     GroupDoesNotExist,
     InvalidCredentials,
@@ -21,6 +20,7 @@ from security.passwords import get_password_hash, verify_password
 from services.jwt_tokens import JWTService
 from services.notification_templates import get_subject, render_template
 from services.tokens import TokenService
+from tasks.send_email import send_email_task
 
 
 class UserService:
