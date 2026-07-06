@@ -1,10 +1,15 @@
 from typing import Sequence
 
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from models.users import UserGroupEnum, UserGroupModel, UserModel
+from models.users import (
+    UserGroupEnum,
+    UserGroupModel,
+    UserModel,
+    UserProfileModel,
+)
 
 
 class UserRepository:
@@ -60,6 +65,19 @@ class UserRepository:
     async def delete(self, user: UserModel) -> None:
         await self.session.delete(user)
         await self.session.flush()
+
+    async def create_profile(
+        self, profile: UserProfileModel
+    ) -> UserProfileModel:
+        self.session.add(profile)
+        await self.session.flush()
+        await self.session.refresh(profile)
+        return profile
+
+    async def get_total_users(self) -> int:
+        stmt = select(func.count(UserModel.id))
+        result = await self.session.execute(stmt)
+        return result.scalar()
 
 
 class GroupRepository:
