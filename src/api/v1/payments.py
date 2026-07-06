@@ -34,6 +34,45 @@ router = APIRouter(prefix="/payments", tags=["Payments"])
     "/sessions",
     response_model=CheckoutSessionResponseSchema,
     status_code=status.HTTP_201_CREATED,
+    summary="Create Stripe Checkout Session",
+    description=(
+        "Generates a unique secure Stripe Checkout URL for order payment. "
+        "The order status must be checked before session initialization. "
+        "Once payment is completed, Stripe will trigger a webhook to update"
+        " the order status."
+    ),
+    responses={
+        400: {
+            "description": "Invalid Order Status",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": {
+                            "message": "Order status is invalid for payment.",
+                            "recommendation": "This order cannot"
+                            " be paid anymore."
+                            " It might be canceled or already paid.",
+                        }
+                    }
+                }
+            },
+        },
+        503: {
+            "description": "Payment Gateway Unavailable",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": {
+                            "message": "Payment system is"
+                            " currently unavailable.",
+                            "recommendation": "Stripe generation failed."
+                            " Try a different payment method later.",
+                        }
+                    }
+                }
+            },
+        },
+    },
 )
 async def create_checkout_session(
     payload: CheckoutSessionCreateSchema,
@@ -103,6 +142,9 @@ async def stripe_webhook(
     "/history",
     response_model=list[UserPaymentHistorySchema],
     status_code=status.HTTP_200_OK,
+    summary="Get User Payment History",
+    description="Retrieves a list of all payment transactions belonging"
+    " to the currently authenticated user.",
 )
 async def get_payment_history(
     current_user: Annotated[UserModel, Depends(get_current_user)],
@@ -115,21 +157,39 @@ async def get_payment_history(
     "/admin/list",
     response_model=list[UserPaymentHistorySchema],
     status_code=status.HTTP_200_OK,
+    summary="Get All Payments (Admin Only)",
+    description="Allows administrators to view and filter all system payment"
+    " transactions with optional filtering parameters.",
 )
 async def admin_get_all_payments(
     current_admin: Annotated[UserModel, Depends(get_current_admin)],
     payment_service: Annotated[IPaymentService, Depends(get_payment_service)],
     user_id: Annotated[
-        int | None, Query(description="Filter by User ID")
+        int | None,
+        Query(description="Filter logs by a specific User ID", examples=[101]),
     ] = None,
     payment_status: Annotated[
-        str | None, Query(alias="status", description="Filter by status")
+        str | None,
+        Query(
+            alias="status",
+            description="Filter logs by transaction status "
+            "(e.g., 'paid', 'pending')",
+            examples=["paid"],
+        ),
     ] = None,
     start_date: Annotated[
-        datetime | None, Query(description="Filter from date (YYYY-MM-DD)")
+        datetime | None,
+        Query(
+            description="Filter logs starting from this date"
+            " (ISO format or YYYY-MM-DD)"
+        ),
     ] = None,
     end_date: Annotated[
-        datetime | None, Query(description="Filter to date (YYYY-MM-DD)")
+        datetime | None,
+        Query(
+            description="Filter logs up to this date"
+            " (ISO format or YYYY-MM-DD)"
+        ),
     ] = None,
 ):
     return await payment_service.get_all_payments_for_admin(
