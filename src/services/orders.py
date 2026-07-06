@@ -1,23 +1,28 @@
+import contextlib
+from datetime import datetime, timezone
+
+from exceptions.notifications import EmailDeliveryException
 from exceptions.orders import (
     EmptyCartError,
     OrderNotCancelableError,
     OrderNotFoundError,
+    OrderNotPayableError,
 )
 from models.movies import Movie
+from models.notifications import NotificationType
 from models.orders import Order, OrderStatus
 from repositories.orders import OrderRepository
 from schemas.orders import OrderCreateResponse
+from services.email import send_email
+from services.notification_templates import get_subject, render_template
 
 
 class OrderService:
     def __init__(self, repo: OrderRepository):
         self.repo = repo
 
-    async def create_order(
-        self, user_id: int, cart_movie_ids: list[int]
-    ) -> OrderCreateResponse:
-        # TODO: fetch ids via CartRepository once the carts PR merges;
-        #  for now the caller passes the user's cart contents.
+    async def create_order(self, user_id: int) -> OrderCreateResponse:
+        cart_movie_ids = await self.repo.get_cart_movie_ids(user_id)
         if not cart_movie_ids:
             raise EmptyCartError("Your cart is empty.")
 
@@ -35,10 +40,10 @@ class OrderService:
         payable: list[Movie] = []
         for movie in movies:
             if movie.id in purchased:
-                excluded.append(f"'{movie.name}' already purchased.")
+                excluded.append(f"'{movie.name}' — already purchased.")
             elif movie.id in pending:
                 excluded.append(
-                    f"'{movie.name}' already in another pending order."
+                    f"'{movie.name}' — already in another pending order."
                 )
             else:
                 payable.append(movie)
@@ -72,3 +77,56 @@ class OrderService:
         if order.status == OrderStatus.CANCELED:
             raise OrderNotCancelableError("This order is already canceled.")
         return await self.repo.update_status(order, OrderStatus.CANCELED)
+
+    async def get_all_orders(
+        self,
+        user_id: int | None = None,
+        status: OrderStatus | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+    ) -> list[Order]:
+        return await self.repo.get_all_orders(
+            user_id=user_id,
+            status=status,
+            date_from=date_from,
+            date_to=date_to,
+        )
+
+    async def mark_paid(self, order_id: int) -> Order:
+        order = await self.repo.get_order_by_id(order_id)
+        if order is None:
+            raise OrderNotFoundError(f"Order {order_id} not found.")
+        if order.status != OrderStatus.PENDING:
+            raise OrderNotPayableError(
+                f"Cannot mark {order.status} order as paid."
+            )
+
+        order = await self.repo.update_status(order, OrderStatus.PAID)
+
+        email = await self.repo.get_user_email(order.user_id)
+        if email:
+            total = order.total_amount or sum(
+                item.price_at_order for item in order.items
+            )
+            context = {
+                "order_id": order.id,
+                "movie_titles": [item.movie.name for item in order.items],
+                "total_amount": total,
+                "payment_date": datetime.now(timezone.utc).strftime(
+                    "%Y-%m-%d %H:%M UTC"
+                ),
+            }
+            # payment already succeeded; email is best-effort
+            with contextlib.suppress(EmailDeliveryException):
+                await send_email(
+                    to=email,
+                    subject=get_subject(
+                        NotificationType.ORDER_PAYMENT_CONFIRMATION
+                    ),
+                    html_body=render_template(
+                        NotificationType.ORDER_PAYMENT_CONFIRMATION,
+                        context,
+                    ),
+                )
+
+        return order

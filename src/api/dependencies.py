@@ -17,6 +17,7 @@ from repositories.payments import PaymentRepository
 from repositories.tokens import TokenRepository
 from repositories.users import GroupRepository, UserRepository
 from services.jwt_tokens import JWTService
+from services.orders import OrderService
 from services.payments import StripePaymentService
 from services.payments.base_payment import IPaymentService
 from services.tokens import TokenService
@@ -117,3 +118,9 @@ async def get_current_only_admin(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied. Only for admins.",
         )
+
+
+async def get_order_service(
+    db_session: Annotated[AsyncSession, Depends(get_db)],
+) -> OrderService:
+    return OrderService(repo=OrderRepository(db_session))
