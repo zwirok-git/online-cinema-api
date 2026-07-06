@@ -1,115 +1,427 @@
-from datetime import datetime, timezone
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.exc import SQLAlchemyError
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Depends
+from fastapi.params import Query
 from starlette import status
 
-from core.config import settings
-from core.database import get_db
-from exceptions.auth import TokenExceptions, UserExceptions
-from models.tokens import RefreshTokenModel
-from repositories.tokens import TokenRepository
-from repositories.users import GroupRepository, UserRepository
-from schemas.tokens import TokenPairResponseSchema
+from api.dependencies import (
+    get_current_only_admin,
+    get_current_user,
+    get_user_service,
+)
+from models import UserModel
+from schemas.tokens import TokenPairResponseSchema, TokenRefreshRequestSchema
 from schemas.users import (
+    UserGroupRequestSchema,
+    UserGroupResponseSchema,
+    UserListItemResponseSchema,
+    UserListResponseSchema,
     UserLoginRequestSchema,
+    UserMeRequestSchema,
+    UserMeResponseSchema,
+    UserMessageSchema,
+    UserNewPasswordRequestSchema,
+    UserPasswordChangeRequestSchema,
     UserRegisterRequestSchema,
     UserRegisterResponseSchema,
+    UserResendActivationSchema,
+    UserResetRequestSchema,
 )
-from security.jwt_tokens import JWTService
-from services.tokens import TokenService
 from services.users import UserService
 
 
-router = APIRouter(prefix="/users", tags=["users"])
+router = APIRouter(prefix="/users", tags=["Users"])
 
 
-@router.post("/register", response_model=UserRegisterResponseSchema)
+@router.post(
+    "/register",
+    response_model=UserRegisterResponseSchema,
+    status_code=status.HTTP_201_CREATED,
+    summary="User Registration",
+    description="Register a new user with an email and password.",
+    responses={
+        404: {
+            "description": "Default user group with does not exists.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "Default user group with does not exists."
+                    }
+                }
+            },
+        },
+        409: {
+            "description": "User with this email already exists.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "A user with this email already exists."
+                    }
+                }
+            },
+        },
+    },
+)
 async def register(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    user_service: Annotated[UserService, Depends(get_user_service)],
     user: UserRegisterRequestSchema,
 ):
-    user_service = UserService(UserRepository(db), GroupRepository(db))
-    token_service = TokenService(TokenRepository(db))
-
-    try:
-        user_model = await user_service.create_user(
-            email=user.email, raw_password=user.password
-        )
-        await token_service.create_activation_token(user_id=user_model.id)
-        await db.commit()
-    except (UserExceptions, TokenExceptions) as error:
-        await db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail=str(error),
-        ) from error
-    except Exception as error:
-        await db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=str(error),
-        ) from error
-    else:
-        # here send email
-        return UserRegisterResponseSchema(
-            id=user_model.id,
-            email=user_model.email,
-            created_at=user_model.created_at,
-            is_active=user_model.is_active,
-        )
+    user_model = await user_service.register_user(
+        email=user.email,
+        raw_password=user.password,
+    )
+    return UserRegisterResponseSchema(
+        id=user_model.id,
+        email=user_model.email,
+        created_at=user_model.created_at,
+        is_active=user_model.is_active,
+    )
 
 
-@router.get("/activate", response_model=UserRegisterResponseSchema)
+@router.post(
+    "/resend_activation",
+    response_model=UserMessageSchema,
+    summary="Resend account activation email.",
+    description="Generates a new activation token and resends the "
+    "activation link to the user's email address.",
+    responses={
+        400: {
+            "description": "User already activated.",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "User already activated."}
+                }
+            },
+        },
+        404: {
+            "description": "User with this email does not exist.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "User with this email does not exist."
+                    }
+                }
+            },
+        },
+    },
+)
+async def resend_activation(
+    user_service: Annotated[UserService, Depends(get_user_service)],
+    user: UserResendActivationSchema,
+):
+    await user_service.resend_activation_token(email=user.email)
+    return UserMessageSchema(
+        message="Your activation link has been sent to your email address.",
+    )
+
+
+@router.get(
+    "/activate",
+    response_model=UserRegisterResponseSchema,
+    summary="Activate user account via token.",
+    description="Activates a user's account using the activation token.",
+    responses={
+        403: {
+            "description": "Activation token has already expired.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "Activation token has already expired."
+                    }
+                }
+            },
+        },
+        404: {
+            "description": "Activation token does not exist.",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Activation token does not exist."}
+                }
+            },
+        },
+    },
+)
 async def activate(
-    db: Annotated[AsyncSession, Depends(get_db)],
+    user_service: Annotated[UserService, Depends(get_user_service)],
     activation_token: str,
 ):
-    token_service = TokenService(TokenRepository(db))
-    user = await token_service.activate_user(token_value=activation_token)
-    return user
+    user_model = await user_service.activate_user(token=activation_token)
+    return UserRegisterResponseSchema(
+        id=user_model.id,
+        email=user_model.email,
+        created_at=user_model.created_at,
+        is_active=user_model.is_active,
+    )
 
 
-@router.post("/login", response_model=TokenPairResponseSchema)
+@router.post(
+    "/login",
+    response_model=TokenPairResponseSchema,
+    summary="Log in user and obtain access/refresh tokens.",
+    description=(
+        "Authenticates a user by email and password, and returns "
+        "a pair of tokens."
+    ),
+    responses={
+        401: {
+            "description": "Invalid email or password.",
+            "content": {
+                "application/json": {"detail": "Invalid email or password."}
+            },
+        },
+        403: {
+            "description": "Account exists but is not activated yet.",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "detail": "Account exists but is not activated yet."
+                    }
+                }
+            },
+        },
+    },
+)
 async def login(
-    db: Annotated[AsyncSession, Depends(get_db)], user: UserLoginRequestSchema
+    user_service: Annotated[UserService, Depends(get_user_service)],
+    user_data: UserLoginRequestSchema,
 ):
-    user_service = UserService(UserRepository(db), GroupRepository(db))
-    jwt_service = JWTService()
-    try:
-        user_model = await user_service.get_user_by_email(email=user.email)
-        await user_service.validate_credentials(user.email, user.password)
-        jwt_refresh_token = jwt_service.create_refresh_token(
-            data={"user_id": user_model.id}
-        )
-        refresh_token = RefreshTokenModel(
-            user_id=user_model.id,
-            expires_at=datetime.now(timezone.utc)
-            + settings.REFRESH_TOKEN_EXPIRE,
-            token=jwt_refresh_token,
-        )
-        db.add(refresh_token)
-        await db.flush()
-        await db.commit()
-    except (UserExceptions, TokenExceptions) as error:
-        await db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
-            detail=str(error),
-        ) from error
-    except SQLAlchemyError:
-        await db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An error occurred while processing the request.",
-        ) from None
-
-    jwt_access_token = jwt_service.create_access_token(
-        {"user_id": user_model.id}
+    refresh_token, access_token = await user_service.login_user(
+        email=user_data.email,
+        password=user_data.password,
     )
     return TokenPairResponseSchema(
-        access_token=jwt_access_token,
-        refresh=jwt_refresh_token,
+        access_token=access_token,
+        refresh_token=refresh_token,
+    )
+
+
+@router.post("/refresh", response_model=TokenPairResponseSchema)
+async def refresh(
+    user_service: Annotated[UserService, Depends(get_user_service)],
+    token: TokenRefreshRequestSchema,
+):
+    access_token, refresh_token = await user_service.refresh_access_token(
+        refresh_token=token.refresh_token
+    )
+    return TokenPairResponseSchema(
+        access_token=access_token,
+        refresh_token=refresh_token,
+    )
+
+
+@router.post(
+    "/logout",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Log out and revoke all refresh tokens",
+    description=(
+        "Logs out the currently authenticated user by deleting all of "
+        "their refresh tokens."
+    ),
+    responses={
+        401: {
+            "description": "Missing, invalid, or expired access token.",
+            "content": {
+                "application/json": {
+                    "example": {"detail": "Could not validate credentials"}
+                }
+            },
+        },
+        403: {
+            "description": "Account exists but is not activated yet.",
+            "content": {
+                "application/json": {
+                    "detail": "Account exists but is not activated yet."
+                }
+            },
+        },
+    },
+)
+async def logout(
+    user_service: Annotated[UserService, Depends(get_user_service)],
+    current_user: Annotated[UserModel, Depends(get_current_user)],
+):
+    await user_service.logout_user(user_id=current_user.id)
+
+
+@router.post(
+    "/password/change",
+    response_model=UserMessageSchema,
+)
+async def change_password(
+    user_service: Annotated[UserService, Depends(get_user_service)],
+    current_user: Annotated[UserModel, Depends(get_current_user)],
+    change_data: UserPasswordChangeRequestSchema,
+):
+    await user_service.change_password(
+        user=current_user,
+        old_password=change_data.old_password,
+        new_password=change_data.new_password,
+    )
+    return UserMessageSchema(
+        message="Password has been changed.",
+    )
+
+
+@router.post("/password/reset", response_model=UserMessageSchema)
+async def reset_password(
+    user_service: Annotated[UserService, Depends(get_user_service)],
+    reset_password_data: UserResetRequestSchema,
+):
+    await user_service.reset_password(
+        user_email=reset_password_data.email,
+    )
+    return UserMessageSchema(
+        message="Your reset link has been sent to your email address.",
+    )
+
+
+@router.post("/password/reset/complete", response_model=UserMessageSchema)
+async def password_reset_complete(
+    user_service: Annotated[UserService, Depends(get_user_service)],
+    reset_token: Annotated[str, Query()],
+    user_data: UserNewPasswordRequestSchema,
+):
+    await user_service.reset_password_complete(
+        reset_token=reset_token,
+        new_password=user_data.new_password,
+    )
+    return UserMessageSchema(
+        message="Password has been reset.",
+    )
+
+
+@router.get("/me", response_model=UserMeResponseSchema)
+async def me(
+    user_service: Annotated[UserService, Depends(get_user_service)],
+    current_user: Annotated[UserModel, Depends(get_current_user)],
+):
+    user_model = await user_service.get_me_profile(user=current_user)
+    return UserMeResponseSchema(
+        id=user_model.id,
+        email=user_model.email,
+        created_at=user_model.created_at,
+        group=UserGroupResponseSchema.model_validate(user_model.group),
+        is_active=user_model.is_active,
+        first_name=user_model.profile.first_name,
+        last_name=user_model.profile.last_name,
+        avatar=user_model.profile.avatar,
+        date_of_birth=user_model.profile.date_of_birth,
+        gender=user_model.profile.gender,
+        info=user_model.profile.info,
+    )
+
+
+@router.patch("/me", response_model=UserMeResponseSchema)
+async def me_patch(
+    user_service: Annotated[UserService, Depends(get_user_service)],
+    current_user: Annotated[UserModel, Depends(get_current_user)],
+    profile_data: UserMeRequestSchema,
+):
+    update_fields = profile_data.model_dump(exclude_unset=True)
+    user_model = await user_service.change_profile(
+        user=current_user, profile_data=update_fields
+    )
+    return UserMeResponseSchema(
+        id=user_model.id,
+        email=user_model.email,
+        created_at=user_model.created_at,
+        group=UserGroupResponseSchema.model_validate(user_model.group),
+        is_active=user_model.is_active,
+        first_name=user_model.profile.first_name,
+        last_name=user_model.profile.last_name,
+        avatar=user_model.profile.avatar,
+        date_of_birth=user_model.profile.date_of_birth,
+        gender=user_model.profile.gender,
+        info=user_model.profile.info,
+    )
+
+
+@router.get("", response_model=UserListResponseSchema)
+async def list_users(
+    user_service: Annotated[UserService, Depends(get_user_service)],
+    current_admin: Annotated[UserModel, Depends(get_current_only_admin)],
+    limit: Annotated[int, Query(gt=0, le=20)] = 10,
+    offset: Annotated[int, Query(ge=0)] = 0,
+):
+    users_models, total_users = await user_service.get_all_users(
+        limit=limit,
+        offset=offset,
+    )
+    return UserListResponseSchema(
+        users=[
+            UserListItemResponseSchema.model_validate(user_model)
+            for user_model in users_models
+        ],
+        total_users=total_users,
+    )
+
+
+@router.get("/{user_id}", response_model=UserMeResponseSchema)
+async def get_user_by_id(
+    user_service: Annotated[UserService, Depends(get_user_service)],
+    current_admin: Annotated[UserModel, Depends(get_current_only_admin)],
+    user_id: int,
+):
+    user_model = await user_service.get_user_by_id(
+        user_id=user_id, with_relations=True
+    )
+    return UserMeResponseSchema(
+        id=user_model.id,
+        email=user_model.email,
+        created_at=user_model.created_at,
+        group=UserGroupResponseSchema.model_validate(user_model.group),
+        is_active=user_model.is_active,
+        first_name=user_model.profile.first_name,
+        last_name=user_model.profile.last_name,
+        avatar=user_model.profile.avatar,
+        date_of_birth=user_model.profile.date_of_birth,
+        gender=user_model.profile.gender,
+        info=user_model.profile.info,
+    )
+
+
+@router.get("/{user_id}/change/group", response_model=UserMeResponseSchema)
+async def change_group(
+    user_service: Annotated[UserService, Depends(get_user_service)],
+    current_admin: Annotated[UserModel, Depends(get_current_only_admin)],
+    group_data: UserGroupRequestSchema,
+    user_id: int,
+):
+    user_model = await user_service.change_group(
+        user_id=user_id, group_name=str(group_data.name.name)
+    )
+    return UserMeResponseSchema(
+        id=user_model.id,
+        email=user_model.email,
+        created_at=user_model.created_at,
+        group=UserGroupResponseSchema.model_validate(user_model.group),
+        is_active=user_model.is_active,
+        first_name=user_model.profile.first_name,
+        last_name=user_model.profile.last_name,
+        avatar=user_model.profile.avatar,
+        date_of_birth=user_model.profile.date_of_birth,
+        gender=user_model.profile.gender,
+        info=user_model.profile.info,
+    )
+
+
+@router.get("/{user_id}/change/status", response_model=UserMeResponseSchema)
+async def change_status(
+    user_service: Annotated[UserService, Depends(get_user_service)],
+    current_admin: Annotated[UserModel, Depends(get_current_only_admin)],
+    user_id: int,
+):
+    user_model = await user_service.change_status(user_id=user_id)
+    return UserMeResponseSchema(
+        id=user_model.id,
+        email=user_model.email,
+        created_at=user_model.created_at,
+        group=UserGroupResponseSchema.model_validate(user_model.group),
+        is_active=user_model.is_active,
+        first_name=user_model.profile.first_name,
+        last_name=user_model.profile.last_name,
+        avatar=user_model.profile.avatar,
+        date_of_birth=user_model.profile.date_of_birth,
+        gender=user_model.profile.gender,
+        info=user_model.profile.info,
     )
