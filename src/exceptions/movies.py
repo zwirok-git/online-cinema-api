@@ -1,13 +1,17 @@
 class MovieError(Exception):
+    pass
 
 
 class MovieNotFoundError(MovieError):
+    pass
 
 
 class MovieAlreadyExistsError(MovieError):
+    pass
 
 
 class MovieHasPurchasesError(MovieError):
+    pass
 
 
 class GenreNotFoundError(MovieError):
