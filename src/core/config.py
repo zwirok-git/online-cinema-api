@@ -33,5 +33,12 @@ class Settings(BaseSettings):
 
     API_V1_PREFIX: str = "/api/v1"
 
+    SMTP_HOST: str = "mailhog"
+    SMTP_PORT: int = 1025
+    SMTP_USER: str | None = None
+    SMTP_PASSWORD: str | None = None
+    SMTP_USE_TLS: bool = False
+    EMAIL_FROM: str = "no-reply@online-cinema.com"
+
 
 settings = Settings()

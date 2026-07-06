@@ -1,28 +1,25 @@
+from datetime import datetime
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from api.dependencies import get_current_user
-from core.database import get_db
+from api.dependencies import (
+    get_current_admin,
+    get_current_user,
+    get_order_service,
+)
 from exceptions.orders import (
     EmptyCartError,
     OrderNotCancelableError,
     OrderNotFoundError,
 )
+from models.orders import OrderStatus
 from models.users import UserModel
-from repositories.orders import OrderRepository
 from schemas.orders import OrderCreateResponse, OrderResponse
 from services.orders import OrderService
 
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
-
-
-def get_order_service(
-    db: Annotated[AsyncSession, Depends(get_db)],
-) -> OrderService:
-    return OrderService(repo=OrderRepository(db))
 
 
 @router.post(
@@ -34,13 +31,12 @@ def get_order_service(
 async def create_order(
     user: Annotated[UserModel, Depends(get_current_user)],
     service: Annotated[OrderService, Depends(get_order_service)],
-    cart_movie_ids: list[int],  # TODO: remove once cart integration lands
 ):
     """Creates an order from the user's cart. Movies that are
     unavailable or already purchased are excluded and reported
     in `excluded_movies`."""
     try:
-        return await service.create_order(user.id, cart_movie_ids)
+        return await service.create_order(user.id)
     except EmptyCartError as e:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST, detail=str(e)
@@ -100,3 +96,25 @@ async def cancel_order(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail=str(e)
         ) from None
+
+
+@router.get(
+    "/admin/all",
+    response_model=list[OrderResponse],
+    summary="List all orders (moderator/admin only)",
+)
+async def get_all_orders(
+    admin: Annotated[UserModel, Depends(get_current_admin)],
+    service: Annotated[OrderService, Depends(get_order_service)],
+    user_id: int | None = None,
+    status_filter: Annotated[OrderStatus | None, Query(alias="status")] = None,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+):
+    """Filter by user, status, or date range."""
+    return await service.get_all_orders(
+        user_id=user_id,
+        status=status_filter,
+        date_from=date_from,
+        date_to=date_to,
+    )
