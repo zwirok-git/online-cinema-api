@@ -1,3 +1,4 @@
+from datetime import datetime
 from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -10,6 +11,7 @@ from exceptions.orders import (
     OrderNotCancelableError,
     OrderNotFoundError,
 )
+from models.orders import OrderStatus
 from models.users import UserModel
 from repositories.orders import OrderRepository
 from schemas.orders import OrderCreateResponse, OrderResponse
@@ -100,3 +102,25 @@ async def cancel_order(
         raise HTTPException(
             status_code=status.HTTP_409_CONFLICT, detail=str(e)
         ) from None
+
+
+@router.get(
+    "/admin/all",
+    response_model=list[OrderResponse],
+    summary="List all orders (moderator/admin only)",
+)
+async def get_all_orders(
+    admin: Annotated[UserModel, Depends(get_current_admin)],
+    service: Annotated[OrderService, Depends(get_order_service)],
+    user_id: int | None = None,
+    status_filter: Annotated[OrderStatus | None, Query(alias="status")] = None,
+    date_from: datetime | None = None,
+    date_to: datetime | None = None,
+):
+    """Filter by user, status, or date range."""
+    return await service.get_all_orders(
+        user_id=user_id,
+        status=status_filter,
+        date_from=date_from,
+        date_to=date_to,
+    )

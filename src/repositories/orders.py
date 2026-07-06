@@ -1,3 +1,4 @@
+from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import select
@@ -71,3 +72,22 @@ class OrderRepository:
         await self.db.commit()
         await self.db.refresh(order)
         return order
+
+    async def get_all_orders(
+        self,
+        user_id: int | None = None,
+        status: OrderStatus | None = None,
+        date_from: datetime | None = None,
+        date_to: datetime | None = None,
+    ) -> list[Order]:
+        stmt = select(Order).order_by(Order.created_at.desc())
+        if user_id is not None:
+            stmt = stmt.where(Order.user_id == user_id)
+        if status is not None:
+            stmt = stmt.where(Order.status == status)
+        if date_from is not None:
+            stmt = stmt.where(Order.created_at >= date_from)
+        if date_to is not None:
+            stmt = stmt.where(Order.created_at <= date_to)
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
