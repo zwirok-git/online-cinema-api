@@ -6,8 +6,8 @@ from datetime import datetime
 from decimal import Decimal
 
 from sqlalchemy import (
-    CheckConstraint,
     DECIMAL,
+    CheckConstraint,
     ForeignKey,
     String,
     Text,
@@ -65,7 +65,9 @@ class CertificationModel(Base):
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
     name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
 
-    movies: Mapped[list["MovieModel"]] = relationship(back_populates="certification")
+    movies: Mapped[list["MovieModel"]] = relationship(
+        back_populates="certification"
+    )
 
 
 class MovieGenreModel(Base):
@@ -104,7 +106,9 @@ class MovieDirectorModel(Base):
 class MovieModel(Base):
     __tablename__ = "movies"
     __table_args__ = (
-        UniqueConstraint("name", "year", "time", name="uq_movie_name_year_time"),
+        UniqueConstraint(
+            "name", "year", "time", name="uq_movie_name_year_time"
+        ),
     )
 
     id: Mapped[int] = mapped_column(primary_key=True, autoincrement=True)
@@ -119,12 +123,17 @@ class MovieModel(Base):
     meta_score: Mapped[float | None] = mapped_column(nullable=True)
     gross: Mapped[float | None] = mapped_column(nullable=True)
     description: Mapped[str] = mapped_column(Text, nullable=False)
-    price: Mapped[Decimal | None] = mapped_column(DECIMAL(10, 2), nullable=True)
+    price: Mapped[Decimal | None] = mapped_column(
+        DECIMAL(10, 2),
+        nullable=True
+    )
 
     certification_id: Mapped[int] = mapped_column(
         ForeignKey("certifications.id"), nullable=False
     )
-    certification: Mapped["CertificationModel"] = relationship(back_populates="movies")
+    certification: Mapped["CertificationModel"] = relationship(
+        back_populates="movies"
+    )
 
     genres: Mapped[list["GenreModel"]] = relationship(
         secondary="movie_genres", back_populates="movies"
@@ -224,7 +233,9 @@ class CommentModel(Base):
     parent: Mapped["CommentModel | None"] = relationship(
         remote_side="CommentModel.id", back_populates="replies"
     )
-    replies: Mapped[list["CommentModel"]] = relationship(back_populates="parent")
+    replies: Mapped[list["CommentModel"]] = relationship(
+        back_populates="parent"
+    )
     likes: Mapped[list["CommentLikeModel"]] = relationship(
         back_populates="comment", cascade="all, delete-orphan"
     )
