@@ -27,6 +27,7 @@ from src.schemas.movies import (
 )
 from src.services.movies import MovieService
 
+
 router = APIRouter()
 
 
@@ -37,7 +38,9 @@ def get_movie_service(db: AsyncSession = Depends(get_db)) -> MovieService:
 movies_router = APIRouter(prefix="/movies", tags=["Movies"])
 
 
-@movies_router.get("/", response_model=PaginatedResponseSchema[MovieListItemSchema])
+@movies_router.get(
+    "/", response_model=PaginatedResponseSchema[MovieListItemSchema]
+)
 async def browse_movies(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
@@ -46,7 +49,9 @@ async def browse_movies(
     return await service.browse(page, per_page)
 
 
-@movies_router.get("/filter", response_model=PaginatedResponseSchema[MovieListItemSchema])
+@movies_router.get(
+    "/filter", response_model=PaginatedResponseSchema[MovieListItemSchema]
+)
 async def filter_movies(
     filters: MovieFilterParams = Depends(),
     page: int = Query(1, ge=1),
@@ -56,7 +61,9 @@ async def filter_movies(
     return await service.filter_movies(filters, page, per_page)
 
 
-@movies_router.get("/sort", response_model=PaginatedResponseSchema[MovieListItemSchema])
+@movies_router.get(
+    "/sort", response_model=PaginatedResponseSchema[MovieListItemSchema]
+)
 async def sort_movies(
     sort_by: MovieSortField = Query(MovieSortField.POPULARITY),
     order: SortOrder = Query(SortOrder.DESC),
@@ -67,7 +74,9 @@ async def sort_movies(
     return await service.sort_movies(sort_by, order, page, per_page)
 
 
-@movies_router.get("/search", response_model=PaginatedResponseSchema[MovieListItemSchema])
+@movies_router.get(
+    "/search", response_model=PaginatedResponseSchema[MovieListItemSchema]
+)
 async def search_movies(
     params: MovieSearchParams = Depends(),
     page: int = Query(1, ge=1),
@@ -78,7 +87,9 @@ async def search_movies(
 
 
 @movies_router.get("/{movie_id}", response_model=MovieDetailSchema)
-async def get_movie(movie_id: int, service: MovieService = Depends(get_movie_service)):
+async def get_movie(
+    movie_id: int, service: MovieService = Depends(get_movie_service)
+):
     return await service.get_detail(movie_id)
 
 
@@ -105,12 +116,16 @@ async def rate_movie(
 
 
 @movies_router.get("/{movie_id}/comments", response_model=list[CommentSchema])
-async def get_comments(movie_id: int, service: MovieService = Depends(get_movie_service)):
+async def get_comments(
+    movie_id: int, service: MovieService = Depends(get_movie_service)
+):
     return await service.get_movie_comments(movie_id)
 
 
 @movies_router.post(
-    "/{movie_id}/comments", response_model=CommentSchema, status_code=status.HTTP_201_CREATED
+    "/{movie_id}/comments",
+    response_model=CommentSchema,
+    status_code=status.HTTP_201_CREATED,
 )
 async def create_comment(
     movie_id: int,
@@ -143,7 +158,9 @@ async def remove_from_favorites(
     await service.remove_from_favorites(movie_id, user_id)
 
 
-@favorites_router.get("/", response_model=PaginatedResponseSchema[MovieListItemSchema])
+@favorites_router.get(
+    "/", response_model=PaginatedResponseSchema[MovieListItemSchema]
+)
 async def browse_favorites(
     page: int = Query(1, ge=1),
     per_page: int = Query(20, ge=1, le=100),
@@ -153,7 +170,9 @@ async def browse_favorites(
     return await service.browse_favorites(user_id, page, per_page)
 
 
-@favorites_router.get("/filter", response_model=PaginatedResponseSchema[MovieListItemSchema])
+@favorites_router.get(
+    "/filter", response_model=PaginatedResponseSchema[MovieListItemSchema]
+)
 async def filter_favorites(
     filters: MovieFilterParams = Depends(),
     page: int = Query(1, ge=1),
@@ -164,7 +183,9 @@ async def filter_favorites(
     return await service.filter_favorites(user_id, filters, page, per_page)
 
 
-@favorites_router.get("/sort", response_model=PaginatedResponseSchema[MovieListItemSchema])
+@favorites_router.get(
+    "/sort", response_model=PaginatedResponseSchema[MovieListItemSchema]
+)
 async def sort_favorites(
     sort_by: MovieSortField = Query(MovieSortField.POPULARITY),
     order: SortOrder = Query(SortOrder.DESC),
@@ -173,10 +194,14 @@ async def sort_favorites(
     user_id: int = Depends(get_current_user),
     service: MovieService = Depends(get_movie_service),
 ):
-    return await service.sort_favorites(user_id, sort_by, order, page, per_page)
+    return await service.sort_favorites(
+        user_id, sort_by, order, page, per_page
+    )
 
 
-@favorites_router.get("/search", response_model=PaginatedResponseSchema[MovieListItemSchema])
+@favorites_router.get(
+    "/search", response_model=PaginatedResponseSchema[MovieListItemSchema]
+)
 async def search_favorites(
     params: MovieSearchParams = Depends(),
     page: int = Query(1, ge=1),
@@ -184,7 +209,9 @@ async def search_favorites(
     user_id: int = Depends(get_current_user),
     service: MovieService = Depends(get_movie_service),
 ):
-    return await service.search_favorites(user_id, params.query, page, per_page)
+    return await service.search_favorites(
+        user_id, params.query, page, per_page
+    )
 
 
 genres_router = APIRouter(prefix="/genres", tags=["Genres"])
@@ -195,7 +222,10 @@ async def list_genres(service: MovieService = Depends(get_movie_service)):
     return await service.list_genres_with_count()
 
 
-@genres_router.get("/{genre_id}/movies", response_model=PaginatedResponseSchema[MovieListItemSchema])
+@genres_router.get(
+    "/{genre_id}/movies",
+    response_model=PaginatedResponseSchema[MovieListItemSchema],
+)
 async def get_movies_by_genre(
     genre_id: int,
     page: int = Query(1, ge=1),
@@ -233,7 +263,9 @@ async def update_movie(
     return await service.update_movie(movie_id, payload)
 
 
-@admin_router.delete("/movies/{movie_id}", status_code=status.HTTP_204_NO_CONTENT)
+@admin_router.delete(
+    "/movies/{movie_id}", status_code=status.HTTP_204_NO_CONTENT
+)
 async def delete_movie(
     movie_id: int,
     service: MovieService = Depends(get_movie_service),
@@ -262,7 +294,9 @@ async def update_genre(
     return await service.update_dictionary_item(Genre, genre_id, name)
 
 
-@admin_router.delete("/genres/{genre_id}", status_code=status.HTTP_204_NO_CONTENT)
+@admin_router.delete(
+    "/genres/{genre_id}", status_code=status.HTTP_204_NO_CONTENT
+)
 async def delete_genre(
     genre_id: int,
     service: MovieService = Depends(get_movie_service),
@@ -291,7 +325,9 @@ async def update_star(
     return await service.update_dictionary_item(Star, star_id, name)
 
 
-@admin_router.delete("/stars/{star_id}", status_code=status.HTTP_204_NO_CONTENT)
+@admin_router.delete(
+    "/stars/{star_id}", status_code=status.HTTP_204_NO_CONTENT
+)
 async def delete_star(
     star_id: int,
     service: MovieService = Depends(get_movie_service),
@@ -320,7 +356,9 @@ async def update_director(
     return await service.update_dictionary_item(Director, director_id, name)
 
 
-@admin_router.delete("/directors/{director_id}", status_code=status.HTTP_204_NO_CONTENT)
+@admin_router.delete(
+    "/directors/{director_id}", status_code=status.HTTP_204_NO_CONTENT
+)
 async def delete_director(
     director_id: int,
     service: MovieService = Depends(get_movie_service),

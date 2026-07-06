@@ -19,6 +19,7 @@ from src.models.movies import (
 from src.models.orders import Order, OrderItem, OrderStatus
 from src.schemas.movies import MovieSortField
 
+
 SORT_COLUMNS = {
     MovieSortField.PRICE: Movie.price,
     MovieSortField.RELEASE_DATE: Movie.year,
@@ -51,12 +52,16 @@ class MovieRepository:
         return result.scalar_one_or_none()
 
     async def count_likes(self, movie_id: int, status_: LikeStatus) -> int:
-        stmt = select(func.count()).where(MovieLike.movie_id == movie_id, MovieLike.status == status_)
+        stmt = select(func.count()).where(
+            MovieLike.movie_id == movie_id, MovieLike.status == status_
+        )
         result = await self.session.execute(stmt)
         return result.scalar_one()
 
     async def average_rating(self, movie_id: int) -> float | None:
-        stmt = select(func.avg(MovieRating.rating)).where(MovieRating.movie_id == movie_id)
+        stmt = select(func.avg(MovieRating.rating)).where(
+            MovieRating.movie_id == movie_id
+        )
         result = await self.session.execute(stmt)
         return result.scalar_one()
 
@@ -86,7 +91,10 @@ class MovieRepository:
             select(func.count())
             .select_from(OrderItem)
             .join(Order, Order.id == OrderItem.order_id)
-            .where(OrderItem.movie_id == movie_id, Order.status == OrderStatus.PAID)
+            .where(
+                OrderItem.movie_id == movie_id,
+                Order.status == OrderStatus.PAID,
+            )
         )
         result = await self.session.execute(stmt)
         return result.scalar_one() > 0
@@ -113,7 +121,9 @@ class MovieRepository:
 
     async def list_genres_with_movie_count(self):
         stmt = (
-            select(Genre, func.count(MovieGenre.movie_id).label("movies_count"))
+            select(
+                Genre, func.count(MovieGenre.movie_id).label("movies_count")
+            )
             .outerjoin(MovieGenre, MovieGenre.genre_id == Genre.id)
             .group_by(Genre.id)
             .order_by(Genre.name)
@@ -121,8 +131,12 @@ class MovieRepository:
         result = await self.session.execute(stmt)
         return list(result.all())
 
-    async def get_favorite(self, movie_id: int, user_id: int) -> Favorite | None:
-        stmt = select(Favorite).where(Favorite.movie_id == movie_id, Favorite.user_id == user_id)
+    async def get_favorite(
+        self, movie_id: int, user_id: int
+    ) -> Favorite | None:
+        stmt = select(Favorite).where(
+            Favorite.movie_id == movie_id, Favorite.user_id == user_id
+        )
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
@@ -134,30 +148,46 @@ class MovieRepository:
         await self.session.delete(favorite)
         await self.session.commit()
 
-    async def get_movie_like(self, movie_id: int, user_id: int) -> MovieLike | None:
-        stmt = select(MovieLike).where(MovieLike.movie_id == movie_id, MovieLike.user_id == user_id)
+    async def get_movie_like(
+        self, movie_id: int, user_id: int
+    ) -> MovieLike | None:
+        stmt = select(MovieLike).where(
+            MovieLike.movie_id == movie_id, MovieLike.user_id == user_id
+        )
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def upsert_movie_like(self, movie_id: int, user_id: int, status_: LikeStatus) -> None:
+    async def upsert_movie_like(
+        self, movie_id: int, user_id: int, status_: LikeStatus
+    ) -> None:
         existing = await self.get_movie_like(movie_id, user_id)
         if existing is not None:
             existing.status = status_
         else:
-            self.session.add(MovieLike(movie_id=movie_id, user_id=user_id, status=status_))
+            self.session.add(
+                MovieLike(movie_id=movie_id, user_id=user_id, status=status_)
+            )
         await self.session.commit()
 
-    async def get_rating(self, movie_id: int, user_id: int) -> MovieRating | None:
-        stmt = select(MovieRating).where(MovieRating.movie_id == movie_id, MovieRating.user_id == user_id)
+    async def get_rating(
+        self, movie_id: int, user_id: int
+    ) -> MovieRating | None:
+        stmt = select(MovieRating).where(
+            MovieRating.movie_id == movie_id, MovieRating.user_id == user_id
+        )
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
-    async def upsert_rating(self, movie_id: int, user_id: int, rating: int) -> None:
+    async def upsert_rating(
+        self, movie_id: int, user_id: int, rating: int
+    ) -> None:
         existing = await self.get_rating(movie_id, user_id)
         if existing is not None:
             existing.rating = rating
         else:
-            self.session.add(MovieRating(movie_id=movie_id, user_id=user_id, rating=rating))
+            self.session.add(
+                MovieRating(movie_id=movie_id, user_id=user_id, rating=rating)
+            )
         await self.session.commit()
 
     async def get_comment(self, comment_id: int) -> Comment | None:
@@ -169,7 +199,9 @@ class MovieRepository:
         stmt = (
             select(Comment)
             .where(Comment.movie_id == movie_id, Comment.parent_id.is_(None))
-            .options(selectinload(Comment.replies), selectinload(Comment.likes))
+            .options(
+                selectinload(Comment.replies), selectinload(Comment.likes)
+            )
             .order_by(Comment.created_at.desc())
         )
         result = await self.session.execute(stmt)
@@ -179,8 +211,13 @@ class MovieRepository:
         self.session.add(comment)
         await self.session.flush()
 
-    async def get_comment_like(self, comment_id: int, user_id: int) -> CommentLike | None:
-        stmt = select(CommentLike).where(CommentLike.comment_id == comment_id, CommentLike.user_id == user_id)
+    async def get_comment_like(
+        self, comment_id: int, user_id: int
+    ) -> CommentLike | None:
+        stmt = select(CommentLike).where(
+            CommentLike.comment_id == comment_id,
+            CommentLike.user_id == user_id,
+        )
         result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
@@ -191,7 +228,9 @@ class MovieRepository:
         await self.session.commit()
 
     async def refresh_comment(self, comment: Comment) -> None:
-        await self.session.refresh(comment, attribute_names=["replies", "likes"])
+        await self.session.refresh(
+            comment, attribute_names=["replies", "likes"]
+        )
 
     async def get_dictionary_item(self, model, item_id: int):
         stmt = select(model).where(model.id == item_id)
