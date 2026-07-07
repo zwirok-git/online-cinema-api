@@ -12,13 +12,11 @@ from exceptions.auth import (
     UserNotActivated,
 )
 from models.users import UserGroupEnum, UserModel
-from repositories.movies import MovieRepository
 from repositories.orders import OrderRepository
 from repositories.payments import PaymentRepository
 from repositories.tokens import TokenRepository
 from repositories.users import GroupRepository, UserRepository
 from services.jwt_tokens import JWTService
-from services.movies import MovieService
 from services.orders import OrderService
 from services.payments import StripePaymentService
 from services.payments.base_payment import IPaymentService
@@ -131,12 +129,3 @@ async def get_order_service(
     db_session: Annotated[AsyncSession, Depends(get_db)],
 ) -> OrderService:
     return OrderService(repo=OrderRepository(db_session))
-
-
-async def get_movie_service(
-    db_session: Annotated[AsyncSession, Depends(get_db)],
-) -> MovieService:
-    return MovieService(
-        session=db_session,
-        repository=MovieRepository(db_session),
-    )
