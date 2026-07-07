@@ -8,6 +8,11 @@ from .movies import (
     MovieGenre,
     MovieStar,
     Star,
+    MovieLike,
+    Favorite,
+    MovieRating,
+    CommentLike,
+    Comment
 )
 from .notifications import (
     NotificationLog,
