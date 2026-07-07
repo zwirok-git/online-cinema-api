@@ -6,7 +6,7 @@ from core.config import settings
 from exceptions.notifications import EmailDeliveryException
 
 
-async def send_email(to: str, subject: str, html_body: str) -> None:
+def send_email(to: str, subject: str, html_body: str) -> None:
     message = MIMEMultipart("alternative")
     message["Subject"] = subject
     message["From"] = settings.EMAIL_FROM
