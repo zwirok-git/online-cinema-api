@@ -3,6 +3,7 @@ from decimal import Decimal
 
 import pytest
 from pydantic import ValidationError
+from sqlalchemy import select
 
 from exceptions.movies import (
     CommentNotFoundError,
