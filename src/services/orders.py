@@ -1,7 +1,6 @@
 import contextlib
 from datetime import datetime, timezone
 
-from exceptions.notifications import EmailDeliveryException
 from exceptions.orders import (
     EmptyCartError,
     OrderNotCancelableError,
@@ -116,8 +115,8 @@ class OrderService:
                     "%Y-%m-%d %H:%M UTC"
                 ),
             }
-            # payment already succeeded; email is best-effort
-            with contextlib.suppress(EmailDeliveryException):
+
+            with contextlib.suppress(Exception):
                 send_email_task.delay(
                     to=email,
                     subject=get_subject(
