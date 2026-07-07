@@ -14,7 +14,7 @@ from exceptions.auth import (
     UserNotActivated,
 )
 from models import NotificationType
-from models.users import UserModel, UserProfileModel
+from models.users import UserGroupEnum, UserModel, UserProfileModel
 from repositories.users import GroupRepository, UserRepository
 from security.passwords import get_password_hash, verify_password
 from services.jwt_tokens import JWTService
@@ -58,7 +58,9 @@ class UserService:
             raise UserAlreadyExists("User with this email already exists.")
 
         hashed_password = get_password_hash(password=raw_password)
-        group = await self.group_repository.get_group_by_name("user")
+        group = await self.group_repository.get_group_by_name(
+            UserGroupEnum.USER.name
+        )
         if group is None:
             raise GroupDoesNotExist("Default user group with does not exists.")
 
