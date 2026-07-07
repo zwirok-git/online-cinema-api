@@ -1,16 +1,11 @@
 from .carts import Cart, CartItem
 from .movies import (
     Certification,
-    CommentLikeModel,
-    CommentModel,
     Director,
-    FavoriteModel,
     Genre,
     Movie,
     MovieDirector,
     MovieGenre,
-    MovieLikeModel,
-    MovieRatingModel,
     MovieStar,
     Star,
 )
@@ -52,11 +47,11 @@ __all__ = [
     "MovieDirector",
     "MovieStar",
     "Movie",
-    "MovieLikeModel",
-    "FavoriteModel",
-    "MovieRatingModel",
-    "CommentLikeModel",
-    "CommentModel",
+    "MovieLike",
+    "Favorite",
+    "MovieRating",
+    "CommentLike",
+    "Comment",
     "Cart",
     "CartItem",
 ]

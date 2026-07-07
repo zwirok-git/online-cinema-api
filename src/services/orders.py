@@ -1,7 +1,6 @@
 import contextlib
 from datetime import datetime, timezone
 
-from exceptions.notifications import EmailDeliveryException
 from exceptions.orders import (
     EmptyCartError,
     OrderNotCancelableError,
@@ -13,8 +12,8 @@ from models.notifications import NotificationType
 from models.orders import Order, OrderStatus
 from repositories.orders import OrderRepository
 from schemas.orders import OrderCreateResponse
-from services.email import send_email
 from services.notification_templates import get_subject, render_template
+from tasks.send_email import send_email_task
 
 
 class OrderService:
@@ -116,9 +115,9 @@ class OrderService:
                     "%Y-%m-%d %H:%M UTC"
                 ),
             }
-            # payment already succeeded; email is best-effort
-            with contextlib.suppress(EmailDeliveryException):
-                await send_email(
+
+            with contextlib.suppress(Exception):
+                send_email_task.delay(
                     to=email,
                     subject=get_subject(
                         NotificationType.ORDER_PAYMENT_CONFIRMATION

@@ -13,11 +13,14 @@ from exceptions.auth import (
     UserDoesNotExists,
     UserNotActivated,
 )
-from models.users import UserModel, UserProfileModel
+from models import NotificationType
+from models.users import UserGroupEnum, UserModel, UserProfileModel
 from repositories.users import GroupRepository, UserRepository
 from security.passwords import get_password_hash, verify_password
 from services.jwt_tokens import JWTService
+from services.notification_templates import get_subject, render_template
 from services.tokens import TokenService
+from tasks.send_email import send_email_task
 
 
 class UserService:
@@ -55,7 +58,9 @@ class UserService:
             raise UserAlreadyExists("User with this email already exists.")
 
         hashed_password = get_password_hash(password=raw_password)
-        group = await self.group_repository.get_group_by_name("user")
+        group = await self.group_repository.get_group_by_name(
+            UserGroupEnum.USER.name
+        )
         if group is None:
             raise GroupDoesNotExist("Default user group with does not exists.")
 
@@ -74,9 +79,15 @@ class UserService:
             f"{settings.BASE_URL}/users/activate"
             f"?activation_token={activation_token.token}"
         )
-        print(activations_link)
 
-        # here send email
+        send_email_task.delay(
+            to=user.email,
+            subject=get_subject(notification_type=NotificationType.ACTIVATION),
+            html_body=render_template(
+                notification_type=NotificationType.ACTIVATION,
+                context={"activation_link": activations_link},
+            ),
+        )
 
         await self.session.commit()
         return user
@@ -104,9 +115,17 @@ class UserService:
             f"{settings.BASE_URL}/users/activate"
             f"?activation_token={activation_token.token}"
         )
-        print(activations_link)
 
-        # here send email
+        send_email_task.delay(
+            to=user.email,
+            subject=get_subject(
+                notification_type=NotificationType.RESEND_ACTIVATION
+            ),
+            html_body=render_template(
+                notification_type=NotificationType.RESEND_ACTIVATION,
+                context={"activation_link": activations_link},
+            ),
+        )
 
         await self.session.commit()
 
@@ -130,7 +149,7 @@ class UserService:
         user = await self.user_repository.get_by_email(user_email=email)
 
         if user is None or not verify_password(password, user.hashed_password):
-            raise InvalidCredentials("Invalid email or password")
+            raise InvalidCredentials("Invalid email or password.")
         if not user.is_active:
             raise UserNotActivated("Account exists but is not activated yet.")
 
@@ -210,9 +229,17 @@ class UserService:
             f"{settings.BASE_URL}/users/reset/complete"
             f"?reset_token={reset_token.token}"
         )
-        print(reset_link)
 
-        # here send email
+        send_email_task.delay(
+            to=user.email,
+            subject=get_subject(
+                notification_type=NotificationType.PASSWORD_RESET
+            ),
+            html_body=render_template(
+                notification_type=NotificationType.PASSWORD_RESET,
+                context={"reset_link": reset_link},
+            ),
+        )
 
         await self.session.commit()
 
