@@ -9,9 +9,11 @@ from core.config import settings
 from core.database import get_db
 from exceptions.auth import UserDoesNotExists
 from models.users import UserGroupEnum, UserModel
+from repositories.movies import MovieRepository
 from repositories.orders import OrderRepository
 from repositories.payments import PaymentRepository
 from repositories.users import GroupRepository, UserRepository
+from services.movies import MovieService
 from services.orders import OrderService
 from services.payments import StripePaymentService
 from services.payments.base_payment import IPaymentService
@@ -96,3 +98,9 @@ async def get_order_service(
     db_session: Annotated[AsyncSession, Depends(get_db)],
 ) -> OrderService:
     return OrderService(repo=OrderRepository(db_session))
+
+
+async def get_movie_service(
+    db_session: Annotated[AsyncSession, Depends(get_db)],
+) -> MovieService:
+    return MovieService(repo=MovieRepository(db_session))
