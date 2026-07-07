@@ -1,7 +1,5 @@
 #!/bin/bash
-
 set -e
-
 
 APP_DIR="${APP_DIR:-$HOME/online-cinema-api}"
 
