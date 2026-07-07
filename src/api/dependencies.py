@@ -1,22 +1,23 @@
 from typing import Annotated
 
-import jwt
 from fastapi import Depends, HTTPException, status
 from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from core.config import settings
 from core.database import get_db
-from exceptions.auth import UserDoesNotExists
+from exceptions.auth import InvalidToken, TokenAlreadyExpired, UserDoesNotExists
 from models.users import UserGroupEnum, UserModel
 from repositories.movies import MovieRepository
 from repositories.orders import OrderRepository
 from repositories.payments import PaymentRepository
+from repositories.tokens import TokenRepository
 from repositories.users import GroupRepository, UserRepository
+from services.jwt_tokens import JWTService
 from services.movies import MovieService
 from services.orders import OrderService
 from services.payments import StripePaymentService
 from services.payments.base_payment import IPaymentService
+from services.tokens import TokenService
 from services.users import UserService
 
 
@@ -34,18 +35,34 @@ async def get_payment_service(
     )
 
 
+def get_jwt_service() -> JWTService:
+    return JWTService()
+
+
+async def get_token_service(
+    db_session: Annotated[AsyncSession, Depends(get_db)],
+) -> TokenService:
+    return TokenService(token_repository=TokenRepository(db_session))
+
+
 async def get_user_service(
     db_session: Annotated[AsyncSession, Depends(get_db)],
+    token_service: Annotated[TokenService, Depends(get_token_service)],
+    jwt_service: Annotated[JWTService, Depends(get_jwt_service)],
 ) -> UserService:
     return UserService(
+        session=db_session,
         user_repository=UserRepository(db_session),
         group_repository=GroupRepository(db_session),
+        token_service=token_service,
+        jwt_service=jwt_service,
     )
 
 
 async def get_current_user(
     token: Annotated[str, Depends(oauth2_scheme)],
     user_service: Annotated[UserService, Depends(get_user_service)],
+    jwt_service: Annotated[JWTService, Depends(get_jwt_service)],
 ) -> UserModel:
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -54,19 +71,19 @@ async def get_current_user(
     )
 
     try:
-        payload = jwt.decode(
-            token,
-            settings.TOKEN_SECRET_KEY,
-            algorithms=[settings.TOKEN_ALGORITHM],
-        )
-        email: str | None = payload.get("sub")
-        if email is None:
-            raise credentials_exception
-    except (jwt.PyJWTError, ValueError):
+        payload = jwt_service.decode_token(token)
+    except (TokenAlreadyExpired, InvalidToken):
         raise credentials_exception from None
 
+    if payload.get("type") != "access":
+        raise credentials_exception
+
+    raw_user_id = payload.get("sub")
+    if raw_user_id is None:
+        raise credentials_exception
+
     try:
-        user = await user_service.get_user_by_email(email=email)
+        user = await user_service.get_user_by_id(user_id=int(raw_user_id))
     except UserDoesNotExists:
         raise credentials_exception from None
 
