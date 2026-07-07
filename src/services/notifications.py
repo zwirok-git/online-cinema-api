@@ -36,7 +36,7 @@ class NotificationService:
                 f"Notification with id={notification_id} was not found"
             )
         html_body = render_template(log.notification_type, log.context)
-        await send_email(
+        send_email(
             to=log.recipient_email, subject=log.subject, html_body=html_body
         )
         await self.repository.mark_sent(notification_id)
