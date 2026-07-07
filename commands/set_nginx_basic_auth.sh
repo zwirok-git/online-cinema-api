@@ -15,6 +15,7 @@ else
     printf '%s' "$API_PASSWORD" | htpasswd -i /etc/nginx/.htpasswd "$API_USER"
 fi
 
+
 cat <<EOL > /etc/nginx/conf.d/auth.conf
 auth_basic "Restricted Access";
 auth_basic_user_file /etc/nginx/.htpasswd;
