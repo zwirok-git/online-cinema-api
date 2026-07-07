@@ -8,6 +8,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $POSTGRES_USER -d $POSTGRES_DB"]
       interval: 5s
@@ -28,6 +29,43 @@ services:
     volumes:
       - ./src:/app/src
       - ./alembic:/app/alembic
+
+  redis:
+    image: redis:7-alpine
+    container_name: online_cinema_redis
+    ports:
+      - "6379:6379"
+
+  celery:
+    build: .
+    container_name: online_cinema_celery_worker
+    env_file:
+      - .env
+    command: uv run celery -A core.celery worker --loglevel=INFO
+    depends_on:
+      - db
+      - redis
+    volumes:
+      - ./src:/app/src
+
+
+  celery_beat:
+    build: .
+    container_name: online_cinema_celery_beat
+    command: uv run celery -A core.celery beat --loglevel=INFO
+    depends_on:
+      - redis
+      - celery
+      - db
+
+  flower:
+    build: .
+    container_name: online_cinema_celery_flower
+    command: uv run celery -A core.celery flower --port=5555
+    ports:
+      - "5555:5555"
+    depends_on:
+      - redis
 
 volumes:
   postgres_data:

@@ -12,3 +12,7 @@ class OrderNotFoundError(OrderError):
 
 class OrderNotCancelableError(OrderError):
     """Order is already paid (refund required) or already canceled."""
+
+
+class OrderNotPayableError(OrderError):
+    """Order is not in a payable state (not pending)."""

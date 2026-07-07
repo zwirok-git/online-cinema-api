@@ -1,7 +1,19 @@
 from fastapi import FastAPI, Request, status
 from fastapi.responses import JSONResponse
 
-from services.exceptions import (
+from exceptions.auth import (
+    GroupDoesNotExist,
+    InvalidCredentials,
+    InvalidOldPassword,
+    InvalidToken,
+    TokenAlreadyExpired,
+    TokenDoesNotExists,
+    UserAlreadyActivated,
+    UserAlreadyExists,
+    UserDoesNotExists,
+    UserNotActivated,
+)
+from exceptions.payments import (
     InvalidOrderStatusException,
     OrderAccessDeniedException,
     OrderNotFoundException,
@@ -34,5 +46,93 @@ def register_exception_handlers(app: FastAPI) -> None:
     ):
         return JSONResponse(
             status_code=status.HTTP_400_BAD_REQUEST,
+            content={"detail": exc.message},
+        )
+
+    @app.exception_handler(UserAlreadyExists)
+    async def user_already_exists_handler(
+        request: Request, exc: UserAlreadyExists
+    ):
+        return JSONResponse(
+            status_code=status.HTTP_409_CONFLICT,
+            content={"detail": exc.message},
+        )
+
+    @app.exception_handler(GroupDoesNotExist)
+    async def group_does_not_exist_handler(
+        request: Request, exc: GroupDoesNotExist
+    ):
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"detail": exc.message},
+        )
+
+    @app.exception_handler(UserDoesNotExists)
+    async def user_does_not_exist_handler(
+        request: Request, exc: UserDoesNotExists
+    ):
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"detail": exc.message},
+        )
+
+    @app.exception_handler(UserAlreadyActivated)
+    async def user_already_activated_handler(
+        request: Request, exc: UserAlreadyActivated
+    ):
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"detail": exc.message},
+        )
+
+    @app.exception_handler(InvalidCredentials)
+    async def invalid_credentials_handler(
+        request: Request, exc: InvalidCredentials
+    ):
+        return JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content={"detail": exc.message},
+        )
+
+    @app.exception_handler(UserNotActivated)
+    async def user_not_activated_handler(
+        request: Request, exc: UserNotActivated
+    ):
+        return JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content={"detail": exc.message},
+        )
+
+    @app.exception_handler(InvalidOldPassword)
+    async def invalid_old_password_handler(
+        request: Request, exc: InvalidOldPassword
+    ):
+        return JSONResponse(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            content={"detail": exc.message},
+        )
+
+    @app.exception_handler(TokenDoesNotExists)
+    async def token_does_not_exist_handler(
+        request: Request, exc: TokenDoesNotExists
+    ):
+        return JSONResponse(
+            status_code=status.HTTP_404_NOT_FOUND,
+            content={"detail": exc.message},
+        )
+
+    @app.exception_handler(TokenAlreadyExpired)
+    async def token_already_expired_handler(
+        request: Request, exc: TokenAlreadyExpired
+    ):
+        return JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            content={"detail": exc.message},
+        )
+
+    @app.exception_handler(InvalidToken)
+    async def invalid_token_handler(request: Request, exc: InvalidToken):
+        return JSONResponse(
+            status_code=status.HTTP_401_UNAUTHORIZED,
             content={"detail": exc.message},
         )

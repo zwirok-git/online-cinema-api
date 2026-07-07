@@ -100,7 +100,7 @@ class UserModel(Base):
         cascade="all, delete-orphan",
     )
 
-    profile: Mapped[Optional["UserProfileModel"]] = relationship(
+    profile: Mapped["UserProfileModel"] = relationship(
         "UserProfileModel", back_populates="user", cascade="all, delete-orphan"
     )
 

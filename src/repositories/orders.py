@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from models.carts import Cart, CartItem
 from models.movies import Movie
 from models.orders import Order, OrderItem, OrderStatus
+from models.users import UserModel
 
 
 class OrderRepository:
@@ -101,3 +102,8 @@ class OrderRepository:
             stmt = stmt.where(Order.created_at <= date_to)
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
+
+    async def get_user_email(self, user_id: int) -> str | None:
+        stmt = select(UserModel.email).where(UserModel.id == user_id)
+        result = await self.session.execute(stmt)
+        return result.scalar_one_or_none()

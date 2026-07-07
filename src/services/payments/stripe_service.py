@@ -1,3 +1,4 @@
+import contextlib
 from datetime import datetime
 from decimal import Decimal
 
@@ -5,15 +6,17 @@ import stripe
 from fastapi import HTTPException, status
 
 from core.config import settings
-from models import Payment
-from models.orders import OrderStatus
-from repositories.orders import OrderRepository
-from repositories.payments import PaymentRepository
-from services.exceptions import (
+from exceptions.orders import OrderNotFoundError, OrderNotPayableError
+from exceptions.payments import (
     InvalidOrderStatusException,
     OrderAccessDeniedException,
     OrderNotFoundException,
 )
+from models import Payment
+from models.orders import OrderStatus
+from repositories.orders import OrderRepository
+from repositories.payments import PaymentRepository
+from services.orders import OrderService
 from services.payments.base_payment import IPaymentService
 
 
@@ -126,14 +129,11 @@ class StripePaymentService(IPaymentService):
             )
             if payment:
                 await self.payment_repo.update_payment(
-                    payment.id, {"status": "paid"}
+                    payment.id, {"status": payment.status.SUCCESSFUL}
                 )
 
-            order = await self.order_repo.get_order_by_id(order_id)
-            if order:
-                await self.order_repo.update_status(order, OrderStatus.PAID)
-
-            # TODO Telegram or Celery
+            with contextlib.suppress(OrderNotFoundError, OrderNotPayableError):
+                await OrderService(repo=self.order_repo).mark_paid(order_id)
 
         return True
 
