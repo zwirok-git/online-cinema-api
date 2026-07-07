@@ -25,6 +25,8 @@ dependencies = [
     "pytest-asyncio>=1.4.0",
     "flower>=2.0.1",
     "redis>=8.0.1",
+    "sqladmin>=0.28.0",
+    "itsdangerous>=2.2.0",
 ]
 
 [build-system]
