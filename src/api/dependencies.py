@@ -5,7 +5,11 @@ from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.database import get_db
-from exceptions.auth import InvalidToken, TokenAlreadyExpired, UserDoesNotExists
+from exceptions.auth import (
+    InvalidToken,
+    TokenAlreadyExpired,
+    UserDoesNotExists,
+)
 from models.users import UserGroupEnum, UserModel
 from repositories.movies import MovieRepository
 from repositories.orders import OrderRepository
@@ -114,7 +118,10 @@ async def get_current_admin(
 async def get_current_only_admin(
     current_user: UserModel = Depends(get_current_user),
 ) -> UserModel:
-    if not current_user.group or current_user.group.name != UserGroupEnum.ADMIN:
+    if (
+        not current_user.group
+        or current_user.group.name != UserGroupEnum.ADMIN
+    ):
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="Access denied. Only for admins.",
