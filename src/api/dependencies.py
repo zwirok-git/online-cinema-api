@@ -94,6 +94,18 @@ async def get_current_admin(
     return current_user
 
 
+async def get_current_only_admin(
+    current_user: UserModel = Depends(get_current_user),
+) -> UserModel:
+    if not current_user.group or current_user.group.name != UserGroupEnum.ADMIN:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Access denied. Only for admins.",
+        )
+
+    return current_user
+
+
 async def get_order_service(
     db_session: Annotated[AsyncSession, Depends(get_db)],
 ) -> OrderService:
