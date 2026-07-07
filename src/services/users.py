@@ -149,7 +149,7 @@ class UserService:
         user = await self.user_repository.get_by_email(user_email=email)
 
         if user is None or not verify_password(password, user.hashed_password):
-            raise InvalidCredentials("Invalid email or password")
+            raise InvalidCredentials("Invalid email or password.")
         if not user.is_active:
             raise UserNotActivated("Account exists but is not activated yet.")
 
@@ -233,10 +233,10 @@ class UserService:
         send_email_task.delay(
             to=user.email,
             subject=get_subject(
-                notification_type=NotificationType.RESEND_ACTIVATION
+                notification_type=NotificationType.PASSWORD_RESET
             ),
             html_body=render_template(
-                notification_type=NotificationType.RESEND_ACTIVATION,
+                notification_type=NotificationType.PASSWORD_RESET,
                 context={"reset_link": reset_link},
             ),
         )

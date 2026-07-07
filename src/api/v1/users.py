@@ -380,7 +380,7 @@ async def get_user_by_id(
     )
 
 
-@router.get("/{user_id}/change/group", response_model=UserMeResponseSchema)
+@router.post("/{user_id}/change/group", response_model=UserMeResponseSchema)
 async def change_group(
     user_service: Annotated[UserService, Depends(get_user_service)],
     current_admin: Annotated[UserModel, Depends(get_current_only_admin)],
@@ -405,7 +405,7 @@ async def change_group(
     )
 
 
-@router.get("/{user_id}/change/status", response_model=UserMeResponseSchema)
+@router.post("/{user_id}/change/status", response_model=UserMeResponseSchema)
 async def change_status(
     user_service: Annotated[UserService, Depends(get_user_service)],
     current_admin: Annotated[UserModel, Depends(get_current_only_admin)],
