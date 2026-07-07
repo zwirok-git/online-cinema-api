@@ -40,5 +40,8 @@ class Settings(BaseSettings):
     SMTP_USE_TLS: bool = False
     EMAIL_FROM: str = "no-reply@online-cinema.com"
 
+    CELERY_BROKER_URL: str = "redis://redis:6379/0"
+    CELERY_RESULT_BACKEND: str = "redis://redis:6379/0"
+
 
 settings = Settings()
