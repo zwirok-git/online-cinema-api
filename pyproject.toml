@@ -84,3 +84,4 @@ mypy_path = "src"
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
+asyncio_mode = "auto"
