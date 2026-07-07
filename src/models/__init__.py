@@ -1,18 +1,18 @@
 from .carts import Cart, CartItem
 from .movies import (
     Certification,
+    Comment,
+    CommentLike,
     Director,
+    Favorite,
     Genre,
     Movie,
     MovieDirector,
     MovieGenre,
+    MovieLike,
+    MovieRating,
     MovieStar,
     Star,
-    MovieLike,
-    Favorite,
-    MovieRating,
-    CommentLike,
-    Comment
 )
 from .notifications import (
     NotificationLog,
