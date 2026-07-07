@@ -456,10 +456,13 @@ def test_paginated_response_schema_computes_generic_items():
 
 @pytest.fixture
 async def user_group_id(db_session):
-    group = UserGroupModel(name=UserGroupEnum.USER)
-    db_session.add(group)
-    await db_session.flush()
-    return group.id
+    result = await db_session.execute(
+        select(UserGroupModel).where(
+            UserGroupModel.name == UserGroupEnum.USER
+        )
+    )
+    return result.scalar_one().id
+
 
 
 @pytest.fixture
