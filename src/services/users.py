@@ -1,5 +1,8 @@
+from pathlib import Path
 from typing import Sequence
+from uuid import uuid4
 
+from fastapi import UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from core.config import settings
@@ -315,3 +318,46 @@ class UserService:
         user_model.is_active = True
         await self.session.commit()
         return user_model
+
+    async def upload_avatar(
+            self,
+            user: UserModel,
+            avatar: UploadFile,
+    ) -> str:
+        allowed_content_types = {
+            "image/jpeg": ".jpg",
+            "image/png": ".png",
+            "image/webp": ".webp",
+        }
+
+        if avatar.content_type not in allowed_content_types:
+            raise ValueError("Only jpeg, png and webp images are allowed.")
+
+        content = await avatar.read()
+        max_size = 2 * 1024 * 1024
+
+        if len(content) > max_size:
+            raise ValueError("Avatar size must be less than 2 MB.")
+
+        user_with_relations = await self.user_repository.get_by_email(
+            user_email=user.email,
+            with_relations=True,
+        )
+        if user_with_relations is None:
+            raise UserDoesNotExists("User does not exist.")
+
+        extension = allowed_content_types[avatar.content_type]
+        filename = f"{uuid4().hex}{extension}"
+
+        avatars_dir = Path("media") / "avatars"
+        avatars_dir.mkdir(parents=True, exist_ok=True)
+
+        file_path = avatars_dir / filename
+        file_path.write_bytes(content)
+
+        avatar_url = f"{settings.BASE_URL}/media/avatars/{filename}"
+
+        user_with_relations.profile.avatar = avatar_url
+        await self.session.commit()
+
+        return avatar_url
