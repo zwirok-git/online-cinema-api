@@ -129,7 +129,7 @@ class StripePaymentService(IPaymentService):
             )
             if payment:
                 await self.payment_repo.update_payment(
-                    payment.id, {"status": "paid"}
+                    payment.id, {"status": payment.status.SUCCESSFUL}
                 )
 
             with contextlib.suppress(OrderNotFoundError, OrderNotPayableError):

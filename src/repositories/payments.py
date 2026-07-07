@@ -18,25 +18,25 @@ class PaymentRepository:
         return payment
 
     async def get_by_id(self, payment_id: int) -> Payment | None:
-        query = select(Payment).where(Payment.id == payment_id)
-        result = await self.session.execute(query)
+        stmt = select(Payment).where(Payment.id == payment_id)
+        result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
     async def get_by_external_id(self, external_id: str) -> Payment | None:
-        query = select(Payment).where(
+        stmt = select(Payment).where(
             Payment.external_payment_id == external_id
         )
-        result = await self.session.execute(query)
+        result = await self.session.execute(stmt)
         return result.scalar_one_or_none()
 
     async def get_user_payments(self, user_id: int) -> list[Payment]:
-        query = (
+        stmt = (
             select(Payment)
             .where(Payment.user_id == user_id)
             .options(selectinload(Payment.items))
             .order_by(Payment.created_at.desc())
         )
-        result = await self.session.execute(query)
+        result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
     async def update_payment(
@@ -60,21 +60,21 @@ class PaymentRepository:
         start_date: datetime | None = None,
         end_date: datetime | None = None,
     ) -> list[Payment]:
-        query = select(Payment).order_by(Payment.created_at.desc())
+        stmt = select(Payment).order_by(Payment.created_at.desc())
 
         if user_id is not None:
-            query = query.where(Payment.user_id == user_id)
+            stmt = stmt.where(Payment.user_id == user_id)
 
         if status is not None:
-            query = query.where(Payment.status == status)
+            stmt = stmt.where(Payment.status == status)
 
         if start_date is not None:
-            query = query.where(Payment.created_at >= start_date)
+            stmt = stmt.where(Payment.created_at >= start_date)
 
         if end_date is not None:
-            query = query.where(Payment.created_at <= end_date)
+            stmt = stmt.where(Payment.created_at <= end_date)
 
-        result = await self.session.execute(query)
+        result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
 
