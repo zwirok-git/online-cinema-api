@@ -320,9 +320,9 @@ class UserService:
         return user_model
 
     async def upload_avatar(
-            self,
-            user: UserModel,
-            avatar: UploadFile,
+        self,
+        user: UserModel,
+        avatar: UploadFile,
     ) -> str:
         allowed_content_types = {
             "image/jpeg": ".jpg",
