@@ -81,7 +81,7 @@ async def override_auth(test_user: UserModel):
         from fastapi import HTTPException, status
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail="Недостаточно прав"
+            detail="insufficient access rights"
         )
 
     app.dependency_overrides[get_current_admin] = mock_get_current_admin
