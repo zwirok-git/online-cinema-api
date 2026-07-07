@@ -1,0 +1,25 @@
+services:
+  online_cinema_db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: admin
+      POSTGRES_PASSWORD: some_password
+      POSTGRES_DB: movies_test_db
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d movies_test_db"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  tests:
+    build:
+      context: .
+      dockerfile: ./docker/tests/Dockerfile
+    container_name: online_cinema_tests
+    environment:
+      - PYTHONPATH=/app/src
+      - ENVIRONMENT=testing
+    command: ["pytest", "tests", "-v", "--tb=short"]
+    depends_on:
+      online_cinema_db:
+        condition: service_healthy
