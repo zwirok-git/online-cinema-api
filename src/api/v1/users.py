@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.params import Query
 from starlette import status
 
@@ -12,6 +12,7 @@ from api.dependencies import (
 from models import UserModel
 from schemas.tokens import TokenPairResponseSchema, TokenRefreshRequestSchema
 from schemas.users import (
+    UserAvatarResponseSchema,
     UserGroupRequestSchema,
     UserGroupResponseSchema,
     UserListItemResponseSchema,
@@ -29,7 +30,6 @@ from schemas.users import (
 )
 from services.users import UserService
 
-from src.schemas.users import UserAvatarResponseSchema
 
 router = APIRouter(prefix="/users", tags=["Users"])
 
@@ -432,7 +432,7 @@ async def change_status(
 async def upload_avatar(
     user_service: Annotated[UserService, Depends(get_user_service)],
     current_user: Annotated[UserModel, Depends(get_current_user)],
-    avatar: UploadFile = File(...),
+    avatar: Annotated[UploadFile, File()],
 ):
     try:
         avatar_url = await user_service.upload_avatar(
