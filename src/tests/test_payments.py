@@ -1,6 +1,6 @@
 import pytest
 import pytest_asyncio
-from fastapi import Depends
+from fastapi import Depends, HTTPException, status
 from decimal import Decimal
 from typing import AsyncGenerator
 from unittest.mock import AsyncMock, MagicMock
@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy import select
 
+from api.dependencies import get_current_admin
 from main import app
 from core.database import Base, get_db
 from models.users import UserModel, UserGroupModel, UserGroupEnum
@@ -75,10 +76,7 @@ async def test_user(db_session: AsyncSession) -> UserModel:
 async def override_auth(test_user: UserModel):
     app.dependency_overrides[get_current_user] = lambda: test_user
 
-    from api.dependencies import get_current_admin
-
     async def mock_get_current_admin():
-        from fastapi import HTTPException, status
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
             detail="insufficient access rights"
