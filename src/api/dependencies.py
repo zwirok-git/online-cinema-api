@@ -1,31 +1,26 @@
 from typing import Annotated
 
+import jwt
 from fastapi import Depends, HTTPException, status
-from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
+from fastapi.security import OAuth2PasswordBearer
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from core.config import settings
 from core.database import get_db
-from exceptions.auth import (
-    InvalidToken,
-    TokenExceptions,
-    UserExceptions,
-    UserNotActivated,
-)
+from exceptions.auth import UserDoesNotExists
 from models.users import UserGroupEnum, UserModel
 from repositories.movies import MovieRepository
 from repositories.orders import OrderRepository
 from repositories.payments import PaymentRepository
-from repositories.tokens import TokenRepository
 from repositories.users import GroupRepository, UserRepository
 from services.movies import MovieService
 from services.orders import OrderService
 from services.payments import StripePaymentService
 from services.payments.base_payment import IPaymentService
-from services.tokens import TokenService
 from services.users import UserService
 
 
-http_bearer = HTTPBearer()
+oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/api/v1/users/login")
 
 
 async def get_payment_service(
@@ -39,66 +34,53 @@ async def get_payment_service(
     )
 
 
-async def get_token_service(
-    db_session: Annotated[AsyncSession, Depends(get_db)],
-) -> TokenService:
-    return TokenService(TokenRepository(session=db_session))
-
-
-async def get_jwt_service():
-    return JWTService()
-
-
 async def get_user_service(
     db_session: Annotated[AsyncSession, Depends(get_db)],
-    token_service: Annotated[TokenService, Depends(get_token_service)],
-    jwt_service: Annotated[JWTService, Depends(get_jwt_service)],
 ) -> UserService:
     return UserService(
-        session=db_session,
         user_repository=UserRepository(db_session),
         group_repository=GroupRepository(db_session),
-        token_service=token_service,
-        jwt_service=jwt_service,
     )
 
 
 async def get_current_user(
-    token: Annotated[HTTPAuthorizationCredentials, Depends(http_bearer)],
+    token: Annotated[str, Depends(oauth2_scheme)],
     user_service: Annotated[UserService, Depends(get_user_service)],
-    jwt_service: Annotated[JWTService, Depends(get_jwt_service)],
 ) -> UserModel:
-    access_token = token.credentials
-    exception = HTTPException(
+    credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
         headers={"WWW-Authenticate": "Bearer"},
     )
+
     try:
-        payload = jwt_service.decode_token(access_token)
-        if payload.get("type") != "access":
-            raise InvalidToken("Access token is invalid.")
-
-        sub = payload.get("sub")
-        if sub is None:
-            raise InvalidToken("Token missing subject claim.")
-        user_id = int(sub)
-
-        user = await user_service.get_user_by_id(
-            user_id=user_id, with_relations=True
+        payload = jwt.decode(
+            token,
+            settings.TOKEN_SECRET_KEY,
+            algorithms=[settings.TOKEN_ALGORITHM],
         )
-    except (TokenExceptions, UserExceptions):
-        raise exception from None
+        email: str | None = payload.get("sub")
+        if email is None:
+            raise credentials_exception
+    except (jwt.PyJWTError, ValueError):
+        raise credentials_exception from None
 
-    if user is None:
-        raise exception
+    try:
+        user = await user_service.get_user_by_email(email=email)
+    except UserDoesNotExists:
+        raise credentials_exception from None
+
     if not user.is_active:
-        raise UserNotActivated("Account exists but is not activated yet.")
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="User is inactive",
+        )
+
     return user
 
 
 async def get_current_admin(
-    current_user: Annotated[UserModel, Depends(get_current_user)],
+    current_user: UserModel = Depends(get_current_user),
 ) -> UserModel:
     if not current_user.group or current_user.group.name not in (
         UserGroupEnum.ADMIN,
@@ -109,20 +91,6 @@ async def get_current_admin(
             detail="Access denied. Only for moderators/admins.",
         )
 
-    return current_user
-
-
-async def get_current_only_admin(
-    current_user: UserModel = Depends(get_current_user),
-) -> UserModel:
-    if (
-        not current_user.group
-        or current_user.group.name != UserGroupEnum.ADMIN
-    ):
-        raise HTTPException(
-            status_code=status.HTTP_403_FORBIDDEN,
-            detail="Access denied. Only for admins.",
-        )
     return current_user
 
 
