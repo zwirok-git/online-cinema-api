@@ -1,5 +1,4 @@
-name: CI-workflow.yml
-
+name: CI
 
 on:
   push:
@@ -47,3 +46,12 @@ jobs:
 
       - name: Run mypy
         run: uv run mypy src
+
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v6
+
+      - name: Run tests in Docker
+        run: docker compose -f docker-compose-tests.yml up --build --abort-on-container-exit --exit-code-from tests
