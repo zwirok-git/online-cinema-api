@@ -9,9 +9,9 @@ from services.email import send_email
     max_retries=3,
     default_retry_delay=30,
 )
-async def send_email_task(self, to: str, subject: str, html_body: str) -> str:
+def send_email_task(self, to: str, subject: str, html_body: str) -> str:
     try:
-        await send_email(to=to, subject=subject, html_body=html_body)
+        send_email(to=to, subject=subject, html_body=html_body)
         return f"Email sent to {to}."
     except EmailDeliveryException as exc:
         raise self.retry(exc=exc) from exc

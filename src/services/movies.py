@@ -1,116 +1,371 @@
-from sqlalchemy.ext.asyncio import AsyncSession
+import math
 
-from models.movies import Movie
+from sqlalchemy import func, select
+
+from exceptions.movies import (
+    CertificationNotFoundError,
+    CommentNotFoundError,
+    DictionaryItemAlreadyExistsError,
+    DirectorNotFoundError,
+    FavoriteNotFoundError,
+    GenreNotFoundError,
+    MovieAlreadyExistsError,
+    MovieHasPurchasesError,
+    MovieNotFoundError,
+    StarNotFoundError,
+)
+from models.movies import Comment, LikeStatus, Movie
 from repositories.movies import MovieRepository
-from schemas.admin_movies import AdminMovieCreateSchema, AdminMovieUpdateSchema
+from schemas.movies import (
+    CertificationSchema,
+    CommentCreateSchema,
+    CommentSchema,
+    DirectorSchema,
+    GenreSchema,
+    GenreWithCountSchema,
+    MovieCreateSchema,
+    MovieDetailSchema,
+    MovieFilterParams,
+    MovieListItemSchema,
+    MovieSortField,
+    MovieUpdateSchema,
+    PaginatedResponseSchema,
+    SortOrder,
+    StarSchema,
+)
 
 
-class MovieNotFoundError(Exception):
-    pass
-
-
-class MoviePurchasedError(Exception):
-    pass
-
-
-class RelatedMovieDataError(Exception):
-    pass
+_ENTITY_LABELS = {
+    "genres": "Genre",
+    "stars": "Star",
+    "directors": "Director",
+    "certifications": "Certification",
+}
+_NOT_FOUND_BY_TABLE = {
+    "genres": GenreNotFoundError,
+    "stars": StarNotFoundError,
+    "directors": DirectorNotFoundError,
+    "certifications": CertificationNotFoundError,
+}
 
 
 class MovieService:
-    def __init__(
-        self, session: AsyncSession, repository: MovieRepository
-    ) -> None:
-        self.session = session
-        self.repository = repository
+    def __init__(self, repo: MovieRepository):
+        self.repo = repo
 
-    async def list_movies(self, limit: int, offset: int):
-        movies = await self.repository.get_all(limit=limit, offset=offset)
-        total = await self.repository.get_total()
-        return movies, total
+    async def _paginate(
+        self, stmt, page: int, per_page: int
+    ) -> PaginatedResponseSchema[MovieListItemSchema]:
+        session = self.repo.session
+        subquery = stmt.order_by(None).subquery()
+        count_stmt = select(func.count()).select_from(subquery)
+        total = (await session.execute(count_stmt)).scalar_one()
+        rows = (
+            (
+                await session.execute(
+                    stmt.offset((page - 1) * per_page).limit(per_page)
+                )
+            )
+            .scalars()
+            .all()
+        )
+        return PaginatedResponseSchema[MovieListItemSchema](
+            items=[MovieListItemSchema.model_validate(r) for r in rows],
+            total=total,
+            page=page,
+            per_page=per_page,
+            total_pages=math.ceil(total / per_page) if total else 0,
+        )
 
-    async def get_movie(self, movie_id: int) -> Movie:
-        movie = await self.repository.get_by_id(movie_id)
+    async def browse(self, page: int, per_page: int):
+        stmt = self.repo.base_query().order_by(Movie.id)
+        return await self._paginate(stmt, page, per_page)
+
+    async def filter_movies(
+        self, filters: MovieFilterParams, page: int, per_page: int
+    ):
+        stmt = self.repo.apply_filters(
+            self.repo.base_query(), filters
+        ).order_by(Movie.id)
+        return await self._paginate(stmt, page, per_page)
+
+    async def sort_movies(
+        self,
+        sort_by: MovieSortField,
+        order: SortOrder,
+        page: int,
+        per_page: int,
+    ):
+        stmt = self.repo.apply_sort(self.repo.base_query(), sort_by, order)
+        return await self._paginate(stmt, page, per_page)
+
+    async def search_movies(self, query: str, page: int, per_page: int):
+        stmt = self.repo.apply_search(self.repo.base_query(), query).order_by(
+            Movie.id
+        )
+        return await self._paginate(stmt, page, per_page)
+
+    async def get_detail(self, movie_id: int) -> MovieDetailSchema:
+        movie = await self.repo.get_by_id_with_relations(movie_id)
+
         if movie is None:
-            raise MovieNotFoundError("Movie does not exist.")
-        return movie
+            raise MovieNotFoundError(f"Movie id={movie_id} not found.")
 
-    async def create_movie(self, data: AdminMovieCreateSchema) -> Movie:
-        certification = await self.repository.get_certification(
-            data.certification_id
+        likes = await self.repo.count_likes(movie_id, LikeStatus.LIKE)
+        dislikes = await self.repo.count_likes(movie_id, LikeStatus.DISLIKE)
+        avg = await self.repo.average_rating(movie_id)
+
+        return MovieDetailSchema(
+            id=movie.id,
+            uuid=movie.uuid,
+            name=movie.name,
+            year=movie.year,
+            time=movie.time,
+            imdb=movie.imdb,
+            votes=movie.votes,
+            meta_score=movie.meta_score,
+            gross=movie.gross,
+            description=movie.description,
+            price=movie.price,
+            certification=CertificationSchema.model_validate(
+                movie.certification
+            ),
+            genres=[
+                GenreSchema.model_validate(genre) for genre in movie.genres
+            ],
+            stars=[StarSchema.model_validate(star) for star in movie.stars],
+            directors=[
+                DirectorSchema.model_validate(director)
+                for director in movie.directors
+            ],
+            likes_count=likes,
+            dislikes_count=dislikes,
+            average_rating=round(avg, 2) if avg is not None else None,
         )
-        if certification is None:
-            raise RelatedMovieDataError("Certification does not exist.")
 
-        genres = await self.repository.get_genres_by_ids(data.genre_ids)
-        stars = await self.repository.get_stars_by_ids(data.star_ids)
-        directors = await self.repository.get_directors_by_ids(
-            data.director_ids
-        )
-
+    async def create_movie(
+        self, payload: MovieCreateSchema
+    ) -> MovieDetailSchema:
         movie = Movie(
-            name=data.name,
-            year=data.year,
-            time=data.time,
-            imdb=data.imdb,
-            votes=data.votes,
-            meta_score=data.meta_score,
-            gross=data.gross,
-            description=data.description,
-            price=data.price,
-            certification=certification,
-            genres=list(genres),
-            stars=list(stars),
-            directors=list(directors),
+            **payload.model_dump(
+                exclude={"genre_ids", "star_ids", "director_ids"}
+            )
         )
-
-        movie = await self.repository.create(movie)
-        await self.session.commit()
-        return movie
+        movie.genres = await self.repo.get_genres_by_ids(payload.genre_ids)
+        movie.stars = await self.repo.get_stars_by_ids(payload.star_ids)
+        movie.directors = await self.repo.get_directors_by_ids(
+            payload.director_ids
+        )
+        if not await self.repo.create_movie(movie):
+            raise MovieAlreadyExistsError(
+                f"Movie «{payload.name}» ({payload.year},"
+                f" {payload.time} min) already exists."
+            )
+        return await self.get_detail(movie.id)
 
     async def update_movie(
-        self, movie_id: int, data: AdminMovieUpdateSchema
-    ) -> Movie:
-        movie = await self.get_movie(movie_id)
-        update_data = data.model_dump(exclude_unset=True)
-
-        genre_ids = update_data.pop("genre_ids", None)
-        star_ids = update_data.pop("star_ids", None)
-        director_ids = update_data.pop("director_ids", None)
-
-        certification_id = update_data.pop("certification_id", None)
-        if certification_id is not None:
-            certification = await self.repository.get_certification(
-                certification_id
-            )
-            if certification is None:
-                raise RelatedMovieDataError("Certification does not exist.")
-            movie.certification = certification
-
-        for field, value in update_data.items():
+        self, movie_id: int, payload: MovieUpdateSchema
+    ) -> MovieDetailSchema:
+        movie = await self.repo.get_by_id_with_relations(movie_id)
+        if movie is None:
+            raise MovieNotFoundError(f"Movie id={movie_id} not found.")
+        data = payload.model_dump(
+            exclude_unset=True,
+            exclude={"genre_ids", "star_ids", "director_ids"},
+        )
+        for field, value in data.items():
             setattr(movie, field, value)
-
-        if genre_ids is not None:
-            movie.genres = list(
-                await self.repository.get_genres_by_ids(genre_ids)
+        if payload.genre_ids is not None:
+            movie.genres = await self.repo.get_genres_by_ids(payload.genre_ids)
+        if payload.star_ids is not None:
+            movie.stars = await self.repo.get_stars_by_ids(payload.star_ids)
+        if payload.director_ids is not None:
+            movie.directors = await self.repo.get_directors_by_ids(
+                payload.director_ids
             )
-        if star_ids is not None:
-            movie.stars = list(
-                await self.repository.get_stars_by_ids(star_ids)
+        if not await self.repo.save_movie(movie):
+            raise MovieAlreadyExistsError(
+                f"Movie «{movie.name}» ({movie.year},"
+                f" {movie.time} min) already exists."
             )
-        if director_ids is not None:
-            movie.directors = list(
-                await self.repository.get_directors_by_ids(director_ids)
-            )
-
-        await self.session.commit()
-        return movie
+        return await self.get_detail(movie_id)
 
     async def delete_movie(self, movie_id: int) -> None:
-        movie = await self.get_movie(movie_id)
+        movie = await self.repo.get_by_id(movie_id)
+        if movie is None:
+            raise MovieNotFoundError(f"Movie id={movie_id} not found.")
+        if await self.repo.has_purchases(movie_id):
+            raise MovieHasPurchasesError(
+                f"Movie id={movie_id} already sold — deletion is prohibited."
+            )
+        await self.repo.delete_movie(movie)
 
-        if await self.repository.is_movie_purchased(movie_id):
-            raise MoviePurchasedError("Purchased movie cannot be deleted.")
+    async def list_genres_with_count(self) -> list[GenreWithCountSchema]:
+        rows = await self.repo.list_genres_with_movie_count()
+        return [
+            GenreWithCountSchema(id=g.id, name=g.name, movies_count=c)
+            for g, c in rows
+        ]
 
-        await self.repository.delete(movie)
-        await self.session.commit()
+    async def get_movies_by_genre(
+        self, genre_id: int, page: int, per_page: int
+    ):
+        if await self.repo.get_genre_by_id(genre_id) is None:
+            raise GenreNotFoundError(f"Genre id={genre_id} not found.")
+        return await self._paginate(
+            self.repo.movies_by_genre_query(genre_id), page, per_page
+        )
+
+    async def add_to_favorites(self, movie_id: int, user_id: int) -> None:
+        if await self.repo.get_favorite(movie_id, user_id) is not None:
+            return
+        if await self.repo.get_by_id(movie_id) is None:
+            raise MovieNotFoundError(f"Movie id={movie_id} not found.")
+        await self.repo.add_favorite(movie_id, user_id)
+
+    async def remove_from_favorites(self, movie_id: int, user_id: int) -> None:
+        favorite = await self.repo.get_favorite(movie_id, user_id)
+        if favorite is None:
+            raise FavoriteNotFoundError(
+                f"Movie id={movie_id} not in favorites."
+            )
+        await self.repo.remove_favorite(favorite)
+
+    async def browse_favorites(self, user_id: int, page: int, per_page: int):
+        stmt = self.repo.favorites_base_query(user_id).order_by(Movie.id)
+        return await self._paginate(stmt, page, per_page)
+
+    async def filter_favorites(
+        self,
+        user_id: int,
+        filters: MovieFilterParams,
+        page: int,
+        per_page: int,
+    ):
+        stmt = self.repo.apply_filters(
+            self.repo.favorites_base_query(user_id), filters
+        ).order_by(Movie.id)
+        return await self._paginate(stmt, page, per_page)
+
+    async def sort_favorites(
+        self,
+        user_id: int,
+        sort_by: MovieSortField,
+        order: SortOrder,
+        page: int,
+        per_page: int,
+    ):
+        stmt = self.repo.apply_sort(
+            self.repo.favorites_base_query(user_id), sort_by, order
+        )
+        return await self._paginate(stmt, page, per_page)
+
+    async def search_favorites(
+        self, user_id: int, query: str, page: int, per_page: int
+    ):
+        stmt = self.repo.apply_search(
+            self.repo.favorites_base_query(user_id), query
+        ).order_by(Movie.id)
+        return await self._paginate(stmt, page, per_page)
+
+    async def like_movie(
+        self, movie_id: int, user_id: int, status_: LikeStatus
+    ) -> None:
+        if await self.repo.get_by_id(movie_id) is None:
+            raise MovieNotFoundError(f"Movie id={movie_id} not found.")
+        await self.repo.upsert_movie_like(movie_id, user_id, status_)
+
+    async def rate_movie(
+        self, movie_id: int, user_id: int, rating: int
+    ) -> None:
+        if await self.repo.get_by_id(movie_id) is None:
+            raise MovieNotFoundError(f"Movie id={movie_id} not found.")
+        await self.repo.upsert_rating(movie_id, user_id, rating)
+
+    def _to_comment_schema(self, comment: Comment) -> CommentSchema:
+        return CommentSchema(
+            id=comment.id,
+            movie_id=comment.movie_id,
+            user_id=comment.user_id,
+            parent_id=comment.parent_id,
+            text=comment.text,
+            created_at=comment.created_at,
+            replies=[self._to_comment_schema(r) for r in comment.replies],
+            likes_count=len(comment.likes),
+        )
+
+    async def get_movie_comments(self, movie_id: int) -> list[CommentSchema]:
+        comments = await self.repo.get_root_comments(movie_id)
+        return [self._to_comment_schema(c) for c in comments]
+
+    async def create_comment(
+        self, movie_id: int, user_id: int, payload: CommentCreateSchema
+    ) -> CommentSchema:
+        parent = None
+        if payload.parent_id is not None:
+            parent = await self.repo.get_comment(payload.parent_id)
+            if parent is None:
+                raise CommentNotFoundError(
+                    f"Parent comment id={payload.parent_id} not found."
+                )
+        comment = Comment(
+            movie_id=movie_id,
+            user_id=user_id,
+            parent_id=payload.parent_id,
+            text=payload.text,
+        )
+        await self.repo.create_comment(comment)
+        await self.repo.commit()
+        await self.repo.refresh_comment(comment)
+        return self._to_comment_schema(comment)
+
+    async def like_comment(self, comment_id: int, user_id: int) -> None:
+        comment = await self.repo.get_comment(comment_id)
+        if comment is None:
+            raise CommentNotFoundError(f"Comment id={comment_id} not found.")
+        if await self.repo.get_comment_like(comment_id, user_id) is not None:
+            return
+        self.repo.add_comment_like(comment_id, user_id)
+        await self.repo.commit()
+
+    async def create_dictionary_item(self, model, name: str):
+        item, ok = await self.repo.create_dictionary_item(model, name)
+        if not ok:
+            entity = _ENTITY_LABELS.get(
+                model.__tablename__, model.__tablename__
+            )
+            raise DictionaryItemAlreadyExistsError(
+                f"{entity} with name «{name}» already exists."
+            )
+        return item
+
+    async def update_dictionary_item(self, model, item_id: int, name: str):
+        item = await self.repo.get_dictionary_item(model, item_id)
+        if item is None:
+            exc_cls = _NOT_FOUND_BY_TABLE.get(
+                model.__tablename__, MovieNotFoundError
+            )
+            entity = _ENTITY_LABELS.get(
+                model.__tablename__, model.__tablename__
+            )
+            raise exc_cls(f"{entity} id={item_id} not found.")
+        if not await self.repo.update_dictionary_item(item, name):
+            entity = _ENTITY_LABELS.get(
+                model.__tablename__, model.__tablename__
+            )
+            raise DictionaryItemAlreadyExistsError(
+                f"{entity} with name «{name}» already exists."
+            )
+        return item
+
+    async def delete_dictionary_item(self, model, item_id: int) -> None:
+        item = await self.repo.get_dictionary_item(model, item_id)
+        if item is None:
+            exc_cls = _NOT_FOUND_BY_TABLE.get(
+                model.__tablename__, MovieNotFoundError
+            )
+            entity = _ENTITY_LABELS.get(
+                model.__tablename__, model.__tablename__
+            )
+            raise exc_cls(f"{entity} id={item_id} not found.")
+        await self.repo.delete_dictionary_item(item)

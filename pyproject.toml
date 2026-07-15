@@ -26,6 +26,8 @@ dependencies = [
     "flower>=2.0.1",
     "redis>=8.0.1",
     "python-multipart>=0.0.32",
+    "sqladmin>=0.28.0",
+    "itsdangerous>=2.2.0",
 ]
 
 [build-system]
@@ -83,3 +85,4 @@ mypy_path = "src"
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]
+asyncio_mode = "auto"

@@ -40,28 +40,6 @@ router = APIRouter(prefix="/users", tags=["Users"])
     status_code=status.HTTP_201_CREATED,
     summary="User Registration",
     description="Register a new user with an email and password.",
-    responses={
-        404: {
-            "description": "Default user group with does not exists.",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "detail": "Default user group with does not exists."
-                    }
-                }
-            },
-        },
-        409: {
-            "description": "User with this email already exists.",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "detail": "A user with this email already exists."
-                    }
-                }
-            },
-        },
-    },
 )
 async def register(
     user_service: Annotated[UserService, Depends(get_user_service)],
@@ -85,26 +63,6 @@ async def register(
     summary="Resend account activation email.",
     description="Generates a new activation token and resends the "
     "activation link to the user's email address.",
-    responses={
-        400: {
-            "description": "User already activated.",
-            "content": {
-                "application/json": {
-                    "example": {"detail": "User already activated."}
-                }
-            },
-        },
-        404: {
-            "description": "User with this email does not exist.",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "detail": "User with this email does not exist."
-                    }
-                }
-            },
-        },
-    },
 )
 async def resend_activation(
     user_service: Annotated[UserService, Depends(get_user_service)],
@@ -121,26 +79,6 @@ async def resend_activation(
     response_model=UserRegisterResponseSchema,
     summary="Activate user account via token.",
     description="Activates a user's account using the activation token.",
-    responses={
-        403: {
-            "description": "Activation token has already expired.",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "detail": "Activation token has already expired."
-                    }
-                }
-            },
-        },
-        404: {
-            "description": "Activation token does not exist.",
-            "content": {
-                "application/json": {
-                    "example": {"detail": "Activation token does not exist."}
-                }
-            },
-        },
-    },
 )
 async def activate(
     user_service: Annotated[UserService, Depends(get_user_service)],
@@ -163,24 +101,6 @@ async def activate(
         "Authenticates a user by email and password, and returns "
         "a pair of tokens."
     ),
-    responses={
-        401: {
-            "description": "Invalid email or password.",
-            "content": {
-                "application/json": {"detail": "Invalid email or password."}
-            },
-        },
-        403: {
-            "description": "Account exists but is not activated yet.",
-            "content": {
-                "application/json": {
-                    "example": {
-                        "detail": "Account exists but is not activated yet."
-                    }
-                }
-            },
-        },
-    },
 )
 async def login(
     user_service: Annotated[UserService, Depends(get_user_service)],
@@ -196,7 +116,13 @@ async def login(
     )
 
 
-@router.post("/refresh", response_model=TokenPairResponseSchema)
+@router.post(
+    "/refresh",
+    response_model=TokenPairResponseSchema,
+    summary="Refresh access token",
+    description="Exchanges a valid refresh token for a new pair of "
+    "access and refresh tokens.",
+)
 async def refresh(
     user_service: Annotated[UserService, Depends(get_user_service)],
     token: TokenRefreshRequestSchema,
@@ -218,24 +144,6 @@ async def refresh(
         "Logs out the currently authenticated user by deleting all of "
         "their refresh tokens."
     ),
-    responses={
-        401: {
-            "description": "Missing, invalid, or expired access token.",
-            "content": {
-                "application/json": {
-                    "example": {"detail": "Could not validate credentials"}
-                }
-            },
-        },
-        403: {
-            "description": "Account exists but is not activated yet.",
-            "content": {
-                "application/json": {
-                    "detail": "Account exists but is not activated yet."
-                }
-            },
-        },
-    },
 )
 async def logout(
     user_service: Annotated[UserService, Depends(get_user_service)],
@@ -247,6 +155,9 @@ async def logout(
 @router.post(
     "/password/change",
     response_model=UserMessageSchema,
+    summary="Change user password with old password.",
+    description="Validates the current password and updates the "
+    "account with a new password.",
 )
 async def change_password(
     user_service: Annotated[UserService, Depends(get_user_service)],
@@ -263,7 +174,13 @@ async def change_password(
     )
 
 
-@router.post("/password/reset", response_model=UserMessageSchema)
+@router.post(
+    "/password/reset",
+    response_model=UserMessageSchema,
+    summary="Request password reset",
+    description="Sends a temporary password reset token to the "
+    "user's email address.",
+)
 async def reset_password(
     user_service: Annotated[UserService, Depends(get_user_service)],
     reset_password_data: UserResetRequestSchema,
@@ -276,7 +193,12 @@ async def reset_password(
     )
 
 
-@router.post("/password/reset/complete", response_model=UserMessageSchema)
+@router.post(
+    "/password/reset/complete",
+    response_model=UserMessageSchema,
+    summary="Complete password reset",
+    description="Updates the user's password using a valid reset token.",
+)
 async def password_reset_complete(
     user_service: Annotated[UserService, Depends(get_user_service)],
     reset_token: Annotated[str, Query()],
@@ -291,7 +213,13 @@ async def password_reset_complete(
     )
 
 
-@router.get("/me", response_model=UserMeResponseSchema)
+@router.get(
+    "/me",
+    response_model=UserMeResponseSchema,
+    summary="Get current user",
+    description="Returns profile information for the currently "
+    "authenticated user.",
+)
 async def me(
     user_service: Annotated[UserService, Depends(get_user_service)],
     current_user: Annotated[UserModel, Depends(get_current_user)],
@@ -312,7 +240,13 @@ async def me(
     )
 
 
-@router.patch("/me", response_model=UserMeResponseSchema)
+@router.patch(
+    "/me",
+    response_model=UserMeResponseSchema,
+    summary="Update current user",
+    description="Updates profile details for the currently "
+    "authenticated user.",
+)
 async def me_patch(
     user_service: Annotated[UserService, Depends(get_user_service)],
     current_user: Annotated[UserModel, Depends(get_current_user)],
@@ -337,7 +271,13 @@ async def me_patch(
     )
 
 
-@router.get("", response_model=UserListResponseSchema)
+@router.get(
+    "",
+    response_model=UserListResponseSchema,
+    summary="Get user list",
+    description="Returns a paginated list of all users. "
+    "Restricted to administrators.",
+)
 async def list_users(
     user_service: Annotated[UserService, Depends(get_user_service)],
     current_admin: Annotated[UserModel, Depends(get_current_only_admin)],
@@ -357,7 +297,13 @@ async def list_users(
     )
 
 
-@router.get("/{user_id}", response_model=UserMeResponseSchema)
+@router.get(
+    "/{user_id}",
+    response_model=UserMeResponseSchema,
+    summary="Get user by ID",
+    description="Returns detailed information about a specific user by their "
+    "unique ID. Restricted to administrators.",
+)
 async def get_user_by_id(
     user_service: Annotated[UserService, Depends(get_user_service)],
     current_admin: Annotated[UserModel, Depends(get_current_only_admin)],
@@ -381,7 +327,13 @@ async def get_user_by_id(
     )
 
 
-@router.get("/{user_id}/change/group", response_model=UserMeResponseSchema)
+@router.post(
+    "/{user_id}/change/group",
+    response_model=UserMeResponseSchema,
+    summary="Change user group",
+    description="Updates the group assignment for a specific user. "
+    "Restricted to administrators.",
+)
 async def change_group(
     user_service: Annotated[UserService, Depends(get_user_service)],
     current_admin: Annotated[UserModel, Depends(get_current_only_admin)],
@@ -406,7 +358,13 @@ async def change_group(
     )
 
 
-@router.get("/{user_id}/change/status", response_model=UserMeResponseSchema)
+@router.post(
+    "/{user_id}/change/status",
+    response_model=UserMeResponseSchema,
+    summary="Update user status",
+    description="Updates the activation status of a user. "
+    "Restricted to administrators.",
+)
 async def change_status(
     user_service: Annotated[UserService, Depends(get_user_service)],
     current_admin: Annotated[UserModel, Depends(get_current_only_admin)],

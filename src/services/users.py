@@ -17,7 +17,7 @@ from exceptions.auth import (
     UserNotActivated,
 )
 from models import NotificationType
-from models.users import UserModel, UserProfileModel
+from models.users import UserGroupEnum, UserModel, UserProfileModel
 from repositories.users import GroupRepository, UserRepository
 from security.passwords import get_password_hash, verify_password
 from services.jwt_tokens import JWTService
@@ -61,7 +61,9 @@ class UserService:
             raise UserAlreadyExists("User with this email already exists.")
 
         hashed_password = get_password_hash(password=raw_password)
-        group = await self.group_repository.get_group_by_name("user")
+        group = await self.group_repository.get_group_by_name(
+            UserGroupEnum.USER.name
+        )
         if group is None:
             raise GroupDoesNotExist("Default user group with does not exists.")
 
@@ -150,7 +152,7 @@ class UserService:
         user = await self.user_repository.get_by_email(user_email=email)
 
         if user is None or not verify_password(password, user.hashed_password):
-            raise InvalidCredentials("Invalid email or password")
+            raise InvalidCredentials("Invalid email or password.")
         if not user.is_active:
             raise UserNotActivated("Account exists but is not activated yet.")
 
@@ -234,10 +236,10 @@ class UserService:
         send_email_task.delay(
             to=user.email,
             subject=get_subject(
-                notification_type=NotificationType.RESEND_ACTIVATION
+                notification_type=NotificationType.PASSWORD_RESET
             ),
             html_body=render_template(
-                notification_type=NotificationType.RESEND_ACTIVATION,
+                notification_type=NotificationType.PASSWORD_RESET,
                 context={"reset_link": reset_link},
             ),
         )

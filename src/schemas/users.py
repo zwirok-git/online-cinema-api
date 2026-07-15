@@ -74,7 +74,6 @@ class UserGroupResponseSchema(BaseModel):
 class UserMeRequestSchema(BaseModel):
     first_name: str | None = Field(None, max_length=255)
     last_name: str | None = Field(None, max_length=255)
-    avatar: str | None = Field(None, max_length=255)
     gender: GenderEnum | None
     date_of_birth: date | None
     info: str | None

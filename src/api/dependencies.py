@@ -136,7 +136,4 @@ async def get_order_service(
 async def get_movie_service(
     db_session: Annotated[AsyncSession, Depends(get_db)],
 ) -> MovieService:
-    return MovieService(
-        session=db_session,
-        repository=MovieRepository(db_session),
-    )
+    return MovieService(repo=MovieRepository(db_session))
