@@ -1,6 +1,6 @@
 from typing import Annotated
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, File, HTTPException, UploadFile
 from fastapi.params import Query
 from starlette import status
 
@@ -12,6 +12,7 @@ from api.dependencies import (
 from models import UserModel
 from schemas.tokens import TokenPairResponseSchema, TokenRefreshRequestSchema
 from schemas.users import (
+    UserAvatarResponseSchema,
     UserGroupRequestSchema,
     UserGroupResponseSchema,
     UserListItemResponseSchema,
@@ -383,3 +384,23 @@ async def change_status(
         gender=user_model.profile.gender,
         info=user_model.profile.info,
     )
+
+
+@router.post("/me/avatar", response_model=UserAvatarResponseSchema)
+async def upload_avatar(
+    user_service: Annotated[UserService, Depends(get_user_service)],
+    current_user: Annotated[UserModel, Depends(get_current_user)],
+    avatar: Annotated[UploadFile, File()],
+):
+    try:
+        avatar_url = await user_service.upload_avatar(
+            user=current_user,
+            avatar=avatar,
+        )
+    except ValueError as error:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=str(error),
+        ) from None
+
+    return UserAvatarResponseSchema(avatar=avatar_url)

@@ -104,3 +104,7 @@ class UserListResponseSchema(BaseModel):
 
     users: list[UserListItemResponseSchema]
     total_users: int
+
+
+class UserAvatarResponseSchema(BaseModel):
+    avatar: str | None
