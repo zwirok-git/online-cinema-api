@@ -57,10 +57,13 @@ class CartRepository:
         return result.scalar_one()
 
     async def remove_item(self, cart_id: int, movie_id: int) -> bool:
-        item = await self.get_item(cart_id, movie_id)
+        cart = await self.get_by_id(cart_id)
+        if cart is None:
+            return False
+        item = next((i for i in cart.items if i.movie_id == movie_id), None)
         if item is None:
             return False
-        await self.session.delete(item)
+        cart.items.remove(item)
         await self.session.commit()
         return True
 
@@ -68,8 +71,7 @@ class CartRepository:
         cart = await self.get_by_id(cart_id)
         if cart is None:
             return
-        for item in list(cart.items):
-            await self.session.delete(item)
+        cart.items.clear()
         await self.session.commit()
 
     async def get_all_carts(self, limit: int, offset: int) -> list[Cart]:
