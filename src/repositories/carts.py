@@ -52,8 +52,9 @@ class CartRepository:
         item = CartItem(cart_id=cart_id, movie_id=movie_id)
         self.session.add(item)
         await self.session.commit()
-        await self.session.refresh(item)
-        return item
+        stmt = select(CartItem).where(CartItem.id == item.id)
+        result = await self.session.execute(stmt)
+        return result.scalar_one()
 
     async def remove_item(self, cart_id: int, movie_id: int) -> bool:
         item = await self.get_item(cart_id, movie_id)
