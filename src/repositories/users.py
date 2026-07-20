@@ -5,6 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
 from models.users import (
+    UserGroupEnum,
     UserGroupModel,
     UserModel,
     UserProfileModel,
@@ -77,6 +78,19 @@ class UserRepository:
         stmt = select(func.count(UserModel.id))
         result = await self.session.execute(stmt)
         return result.scalar() or 0
+
+    async def get_moderator_emails(self) -> Sequence[str]:
+        stmt = (
+            select(UserModel.email)
+            .join(UserGroupModel)
+            .where(
+                UserGroupModel.name.in_(
+                    (UserGroupEnum.MODERATOR, UserGroupEnum.ADMIN)
+                )
+            )
+        )
+        result = await self.session.execute(stmt)
+        return result.scalars().all()
 
 
 class GroupRepository:

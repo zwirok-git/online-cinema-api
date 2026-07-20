@@ -12,11 +12,13 @@ from exceptions.auth import (
     UserNotActivated,
 )
 from models.users import UserGroupEnum, UserModel
+from repositories.carts import CartRepository
 from repositories.movies import MovieRepository
 from repositories.orders import OrderRepository
 from repositories.payments import PaymentRepository
 from repositories.tokens import TokenRepository
 from repositories.users import GroupRepository, UserRepository
+from services.carts import CartService
 from services.jwt_tokens import JWTService
 from services.movies import MovieService
 from services.orders import OrderService
@@ -125,6 +127,16 @@ async def get_current_only_admin(
             detail="Access denied. Only for admins.",
         )
     return current_user
+
+
+async def get_cart_service(
+    db_session: Annotated[AsyncSession, Depends(get_db)],
+) -> CartService:
+    return CartService(
+        cart_repo=CartRepository(db_session),
+        order_repo=OrderRepository(db_session),
+        user_repo=UserRepository(db_session),
+    )
 
 
 async def get_order_service(
