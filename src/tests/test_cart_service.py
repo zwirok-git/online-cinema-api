@@ -170,7 +170,7 @@ async def test_notify_skipped_when_movie_not_in_any_cart(db_session, test_user, 
 async def test_notify_sends_email_to_all_moderators(db_session, test_user, monkeypatch):
     sent = []
 
-    async def fake_send_email(to, subject, html_body):
+    def fake_send_email(to, subject, html_body):
         sent.append(to)
 
     monkeypatch.setattr("services.carts.send_email", fake_send_email)

@@ -62,6 +62,7 @@ class CartRepository:
             return False
         await self.session.delete(item)
         await self.session.commit()
+        self.session.expire_all()
         return True
 
     async def clear_cart(self, cart_id: int) -> None:
@@ -71,6 +72,7 @@ class CartRepository:
         for item in list(cart.items):
             await self.session.delete(item)
         await self.session.commit()
+        self.session.expire_all()
 
     async def get_all_carts(self, limit: int, offset: int) -> list[Cart]:
         stmt = (
