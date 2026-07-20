@@ -86,9 +86,7 @@ class CartService:
         )
         for email in moderator_emails:
             with contextlib.suppress(EmailDeliveryException):
-                await send_email(
-                    to=email, subject=subject, html_body=html_body
-                )
+                send_email(to=email, subject=subject, html_body=html_body)
 
     @staticmethod
     def _to_item_response(item: CartItem) -> CartItemResponse:
