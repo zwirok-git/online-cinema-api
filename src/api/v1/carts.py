@@ -35,13 +35,13 @@ async def add_to_cart(
     user: Annotated[UserModel, Depends(get_current_user)],
     service: Annotated[CartService, Depends(get_cart_service)],
 ):
-    """Adding an already-purchased or already-in-cart movie is
-    rejected with a 409 and an explanatory message."""
+    """Adding an already-purchased movie is rejected with a 403;
+    adding a movie already in the cart is rejected with a 409."""
     try:
         return await service.add_to_cart(user.id, payload.movie_id)
     except MovieAlreadyPurchasedError as e:
         raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail=str(e)
+            status_code=status.HTTP_403_FORBIDDEN, detail=str(e)
         ) from None
     except MovieAlreadyInCartError as e:
         raise HTTPException(
